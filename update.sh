@@ -76,6 +76,10 @@ sync_workflows() {
                     fi
                 done
                 if [ ${#new_patterns[@]} -gt 0 ]; then
+                    # Ensure trailing newline if missing
+                    if [ -n "$(tail -c1 "$target_project/.gitignore" 2>/dev/null)" ]; then
+                        echo "" >> "$target_project/.gitignore"
+                    fi
                     printf "%s\n" "${new_patterns[@]}" >> "$target_project/.gitignore"
                 fi
             fi
