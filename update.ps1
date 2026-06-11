@@ -88,8 +88,11 @@ if ($Check) {
 if ($Auto) {
     $lastCheckFile = Join-Path $targetPluginPath ".last_update_check"
     $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-    $lastCheck = if (Test-Path $lastCheckFile) { (Get-Content $lastCheckFile).Trim() } else { 0 }
+    $lastCheck = if (Test-Path $lastCheckFile) { (Get-Content $lastCheckFile -Raw).Trim() } else { 0 }
     
+    # Validate numeric input to prevent arithmetic injection
+    if ($lastCheck -notmatch '^\d+$') { $lastCheck = 0 }
+
     if ($now - $lastCheck -gt 86400) {
         Write-Log "Checking for OmniState global updates..." "Yellow"
         if (!(Check-GitHubUpdate)) {
