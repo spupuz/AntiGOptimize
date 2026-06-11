@@ -106,7 +106,12 @@ if [ "$ACTION" == "auto" ]; then
     LAST_CHECK_FILE="$TARGET_PLUGIN_PATH/.last_update_check"
     NOW=$(date +%s)
     LAST_CHECK=0
-    if [ -f "$LAST_CHECK_FILE" ]; then LAST_CHECK=$(cat "$LAST_CHECK_FILE"); fi
+    if [ -f "$LAST_CHECK_FILE" ]; then
+        LAST_CHECK=$(cat "$LAST_CHECK_FILE")
+        # Security: Sanitize input to prevent arbitrary command execution in arithmetic evaluation
+        LAST_CHECK=${LAST_CHECK//[!0-9]/}
+    fi
+    if [ -z "$LAST_CHECK" ]; then LAST_CHECK=0; fi
     
     if (( NOW - LAST_CHECK > 86400 )); then
         log "\033[0;33mChecking for OmniState global updates...\033[0m"
