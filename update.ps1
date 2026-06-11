@@ -14,6 +14,7 @@ $scriptDir = $PSScriptRoot
 $versionFile = Join-Path $scriptDir "VERSION.txt"
 $version = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { "1.1.2" }
 $pluginName = "omnistate"
+$protectedPatterns = @("/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md")
 
 # Detect global directories
 $globalBaseDir = Join-Path $HOME ".gemini\antigravity"
@@ -56,7 +57,8 @@ function Sync-Workflows($targetProject) {
             $gitignore = Join-Path $targetProject ".gitignore"
             if (Test-Path $gitignore) {
                 $content = Get-Content $gitignore -Raw
-                foreach ($pattern in @("$wfDir/", "/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md")) {
+                $allPatterns = @("$wfDir/") + $protectedPatterns
+                foreach ($pattern in $allPatterns) {
                     if ($content -notmatch [regex]::Escape($pattern)) {
                         Add-Content -Path $gitignore -Value "$pattern" -Encoding UTF8
                     }
