@@ -69,7 +69,7 @@ sync_workflows() {
             
             # TOTAL GIT PROTECTION
             if [ -f "$target_project/.gitignore" ]; then
-                for pattern in "$wfDir/" "/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md" ".kilo/" ".omnistate/"; do
+                for pattern in "$wfDir/" "/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md" ".kilo/" ".omnistate/" ".roo/"; do
                     if ! grep -q "^$pattern" "$target_project/.gitignore"; then
                         echo "$pattern" >> "$target_project/.gitignore"
                     fi
