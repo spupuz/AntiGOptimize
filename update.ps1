@@ -14,6 +14,7 @@ $scriptDir = $PSScriptRoot
 $versionFile = Join-Path $scriptDir "VERSION.txt"
 $version = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { "1.1.2" }
 $pluginName = "omnistate"
+$protectedPatterns = @("/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md", ".kilo/", ".omnistate/", ".roo/")
 
 # Detect global directories
 $globalBaseDir = Join-Path $HOME ".gemini\antigravity"
@@ -56,14 +57,15 @@ function Sync-Workflows($targetProject) {
             $gitignore = Join-Path $targetProject ".gitignore"
             if (Test-Path $gitignore) {
                 $content = Get-Content $gitignore -Raw
-                $toAdd = @()
-                foreach ($pattern in @("$wfDir/", "/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md")) {
+                $newPatterns = @()
+                $allPatterns = @("$wfDir/") + $protectedPatterns
+                foreach ($pattern in $allPatterns) {
                     if ($content -notmatch [regex]::Escape($pattern)) {
-                        $toAdd += $pattern
+                        $newPatterns += $pattern
                     }
                 }
-                if ($toAdd.Count -gt 0) {
-                    Add-Content -Path $gitignore -Value $toAdd -Encoding UTF8
+                if ($newPatterns.Count -gt 0) {
+                    Add-Content -Path $gitignore -Value $newPatterns -Encoding UTF8
                 }
             }
         }
@@ -92,15 +94,11 @@ if ($Check) {
 if ($Auto) {
     $lastCheckFile = Join-Path $targetPluginPath ".last_update_check"
     $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-    $lastCheck = 0
-    if (Test-Path $lastCheckFile) {
-        $rawLastCheck = (Get-Content $lastCheckFile).Trim()
-        # Security: Ensure input is numeric to prevent unexpected behavior
-        if ($rawLastCheck -match '^\d+$') {
-            $lastCheck = [long]$rawLastCheck
-        }
-    }
+    $lastCheck = if (Test-Path $lastCheckFile) { (Get-Content $lastCheckFile -Raw).Trim() } else { 0 }
     
+    # Validate numeric input to prevent arithmetic injection
+    if ($lastCheck -notmatch '^\d+$') { $lastCheck = 0 }
+
     if ($now - $lastCheck -gt 86400) {
         Write-Log "Checking for OmniState global updates..." "Yellow"
         if (!(Check-GitHubUpdate)) {

@@ -111,10 +111,10 @@ EOF
 echo "🔄 OmniState Bidirectional Workflow Sync"
 echo "=========================================="
 
-# Sync from .agents/workflows to .roo/commands
+# Sync from .agents/workflows to .kilo/commands
 sync_workflows "$AGENT_WORKFLOWS" "$KILO_COMMANDS" "AGENT → KILO"
 
-# Sync from .roo/commands to .agents/workflows
+# Sync from .kilo/commands to .agents/workflows
 sync_workflows "$KILO_COMMANDS" "$AGENT_WORKFLOWS" "KILO → AGENT"
 
 # Create shared configuration

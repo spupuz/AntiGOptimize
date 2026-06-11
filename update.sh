@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION_FILE="$SCRIPT_DIR/VERSION.txt"
 VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "1.1.2")
 PLUGIN_NAME="omnistate"
+PROTECTED_PATTERNS=("/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md" ".kilo/" ".omnistate/" ".roo/")
 
 # Detect global directories
 GLOBAL_BASE_DIR="$HOME/.gemini/antigravity"
@@ -69,14 +70,18 @@ sync_workflows() {
             
             # TOTAL GIT PROTECTION
             if [ -f "$target_project/.gitignore" ]; then
-                patterns_to_add=()
-                for pattern in "$wfDir/" "/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md"; do
+                new_patterns=()
+                for pattern in "$wfDir/" "${PROTECTED_PATTERNS[@]}"; do
                     if ! grep -q "^$pattern" "$target_project/.gitignore"; then
-                        patterns_to_add+=("$pattern")
+                        new_patterns+=("$pattern")
                     fi
                 done
-                if [ ${#patterns_to_add[@]} -gt 0 ]; then
-                    printf "%s\n" "${patterns_to_add[@]}" >> "$target_project/.gitignore"
+                if [ ${#new_patterns[@]} -gt 0 ]; then
+                    # Ensure trailing newline if missing
+                    if [ -n "$(tail -c1 "$target_project/.gitignore" 2>/dev/null)" ]; then
+                        echo "" >> "$target_project/.gitignore"
+                    fi
+                    printf "%s\n" "${new_patterns[@]}" >> "$target_project/.gitignore"
                 fi
             fi
         done
@@ -112,10 +117,10 @@ if [ "$ACTION" == "auto" ]; then
     LAST_CHECK=0
     if [ -f "$LAST_CHECK_FILE" ]; then
         LAST_CHECK=$(cat "$LAST_CHECK_FILE")
-        # Security: Sanitize input to prevent arbitrary command execution in arithmetic evaluation
+        # Sanitize numeric input to prevent arithmetic injection
         LAST_CHECK=${LAST_CHECK//[!0-9]/}
+        LAST_CHECK=${LAST_CHECK:-0}
     fi
-    if [ -z "$LAST_CHECK" ]; then LAST_CHECK=0; fi
     
     if (( NOW - LAST_CHECK > 86400 )); then
         log "\033[0;33mChecking for OmniState global updates...\033[0m"

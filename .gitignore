@@ -26,3 +26,7 @@ tasks-archive.json
 antigravity.config.json
 chunks/
 
+AGENTS.md
+AI_POLICY.md
+CONTEXT.md
+.roo/
