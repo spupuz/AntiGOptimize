@@ -110,6 +110,7 @@ if [ "$ACTION" == "auto" ]; then
         LAST_CHECK=$(cat "$LAST_CHECK_FILE")
         # Sanitize numeric input to prevent arithmetic injection
         LAST_CHECK=${LAST_CHECK//[!0-9]/}
+        LAST_CHECK=${LAST_CHECK:-0}
     fi
     
     if (( NOW - LAST_CHECK > 86400 )); then
