@@ -26,7 +26,8 @@ description: Generates or updates the interactive Visual Dashboard for the proje
    - **Check Local Template**: If `.agent/templates/dashboard.html` exists, use it.
    - **Fallback**: Use `~/.gemini/antigravity/plugins/omnistate/templates/dashboard.html`.
    - Stringify the extracted data into a JSON object.
-   - Replace the `{{DATA}}` placeholder in the template with the JSON.
+   - **SECURITY**: Ensure the JSON is HTML-safe for injection into a `<script>` tag. Specifically, escape any `<` character as `\u003c` to prevent `</script>` from breaking out of the container.
+   - Replace the `{{DATA}}` placeholder in the template with the sanitized JSON.
 4. **Output:**
    - Write the resulting file to `omnistate-dashboard.html` in the project root.
    - **Also generate a rich artifact** in the session showing the dashboard HTML content.
