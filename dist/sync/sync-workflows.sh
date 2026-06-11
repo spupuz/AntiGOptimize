@@ -55,13 +55,40 @@ function sync_shared_config() {
     
     # Collect all workflow files from both directories
     local workflow_files=()
+    local candidates=()
     
     for dir in "$AGENT_WORKFLOWS" "$KILO_COMMANDS"; do
         for file in "$dir"/*; do
-            if [[ -f "$file" ]] && ! git check-ignore -q "$file" 2>/dev/null; then
-                workflow_files+=("$(basename "$file")")
+            if [[ -f "$file" ]]; then
+                candidates+=("$file")
             fi
         done
+    done
+
+    # Batch check git ignore status
+    local ignored_files=""
+    if [ ${#candidates[@]} -gt 0 ]; then
+        # Capture ignored files. We check the exit code because git check-ignore
+        # returns 0 if at least one file is ignored, 1 if none are ignored, and >1 for fatal errors (e.g., not a git repo).
+        local git_exit_code=0
+        ignored_files=$(printf "%s\n" "${candidates[@]}" | git check-ignore --stdin 2>/dev/null) || git_exit_code=$?
+
+        # If exit code is >1, it's a fatal error (like not being in a git repository).
+        # In this case, we act as if nothing is ignored.
+        if [ $git_exit_code -gt 1 ]; then
+            ignored_files=""
+        fi
+    fi
+
+    # Format ignored files string with leading/trailing newlines for exact matching
+    local ignored_str=$'\n'"$ignored_files"$'\n'
+
+    # Filter out ignored files
+    for file in "${candidates[@]}"; do
+        # If the file path is not in the ignored string exactly
+        if [[ "$ignored_str" != *$'\n'"$file"$'\n'* ]]; then
+            workflow_files+=("$(basename "$file")")
+        fi
     done
     
     # Create JSON configuration
