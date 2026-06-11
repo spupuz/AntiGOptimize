@@ -56,10 +56,14 @@ function Sync-Workflows($targetProject) {
             $gitignore = Join-Path $targetProject ".gitignore"
             if (Test-Path $gitignore) {
                 $content = Get-Content $gitignore -Raw
+                $toAdd = @()
                 foreach ($pattern in @("$wfDir/", "/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md")) {
                     if ($content -notmatch [regex]::Escape($pattern)) {
-                        Add-Content -Path $gitignore -Value "$pattern" -Encoding UTF8
+                        $toAdd += $pattern
                     }
+                }
+                if ($toAdd.Count -gt 0) {
+                    Add-Content -Path $gitignore -Value $toAdd -Encoding UTF8
                 }
             }
         }
