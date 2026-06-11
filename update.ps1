@@ -92,7 +92,14 @@ if ($Check) {
 if ($Auto) {
     $lastCheckFile = Join-Path $targetPluginPath ".last_update_check"
     $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-    $lastCheck = if (Test-Path $lastCheckFile) { (Get-Content $lastCheckFile).Trim() } else { 0 }
+    $lastCheck = 0
+    if (Test-Path $lastCheckFile) {
+        $rawLastCheck = (Get-Content $lastCheckFile).Trim()
+        # Security: Ensure input is numeric to prevent unexpected behavior
+        if ($rawLastCheck -match '^\d+$') {
+            $lastCheck = [long]$rawLastCheck
+        }
+    }
     
     if ($now - $lastCheck -gt 86400) {
         Write-Log "Checking for OmniState global updates..." "Yellow"
