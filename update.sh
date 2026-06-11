@@ -69,11 +69,15 @@ sync_workflows() {
             
             # TOTAL GIT PROTECTION
             if [ -f "$target_project/.gitignore" ]; then
+                patterns_to_add=()
                 for pattern in "$wfDir/" "/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md"; do
                     if ! grep -q "^$pattern" "$target_project/.gitignore"; then
-                        echo "$pattern" >> "$target_project/.gitignore"
+                        patterns_to_add+=("$pattern")
                     fi
                 done
+                if [ ${#patterns_to_add[@]} -gt 0 ]; then
+                    printf "%s\n" "${patterns_to_add[@]}" >> "$target_project/.gitignore"
+                fi
             fi
         done
         log "\033[0;32mComponents synchronized and Git Protection enforced.\033[0m"
