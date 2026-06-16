@@ -35,7 +35,8 @@ function sync_workflows() {
             if [[ -f "$target_file" ]]; then
                 if [[ "$file" -nt "$target_file" ]]; then
                     echo "   → Updating: $filename"
-                    cp "$file" "$target_file"
+                    cp "$file" "$target_file.tmp"
+                    mv "$target_file.tmp" "$target_file"
                 elif [[ "$file" -ot "$target_file" ]]; then
                     echo "   ← Newer in target: $filename"
                 else
@@ -43,7 +44,8 @@ function sync_workflows() {
                 fi
             else
                 echo "   → Adding: $filename"
-                cp "$file" "$target_file"
+                cp "$file" "$target_file.tmp"
+                mv "$target_file.tmp" "$target_file"
             fi
         fi
     done
