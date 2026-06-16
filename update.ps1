@@ -59,11 +59,20 @@ function Sync-Workflows($targetProject) {
                 $content = Get-Content $gitignore -Raw
                 $newPatterns = @()
                 $allPatterns = @("$wfDir/") + $protectedPatterns
+
+                # Use a literal string search to avoid regular expression edge cases
+                # such as overlapping alternations. Prepending a newline helps match
+                # patterns that appear at the beginning of a line consistently.
+                $contentWithNewline = "`n" + $content
+
                 foreach ($pattern in $allPatterns) {
-                    if ($content -notmatch [regex]::Escape($pattern)) {
+                    # Create a literal match string
+                    $lineToMatch = "`n" + $pattern
+                    if (-not $contentWithNewline.Contains($lineToMatch)) {
                         $newPatterns += $pattern
                     }
                 }
+
                 if ($newPatterns.Count -gt 0) {
                     Add-Content -Path $gitignore -Value $newPatterns -Encoding UTF8
                 }
