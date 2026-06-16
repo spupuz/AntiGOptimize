@@ -93,14 +93,20 @@ function sync_shared_config() {
         fi
     done
     
+    # Format JSON array
+    local json_files=""
+    if [ ${#workflow_files[@]} -gt 0 ]; then
+        json_files=$(printf '        "%s",\n' "${workflow_files[@]}" | sed '$ s/,$//')
+    fi
+
     # Create JSON configuration
     cat > "$SHARED_CONFIG" << EOF
 {
     "version": "1.1.1",
     "last_sync": "$(date -Iseconds)",
     "workflow_files": [
-$(printf '		"%s",
-' "${workflow_files[@]}")	],
+$json_files
+    ],
     "agent_workflows": "$AGENT_WORKFLOWS",
     "kilo_commands": "$KILO_COMMANDS"
 }
@@ -109,22 +115,29 @@ EOF
     echo "   ✓ Shared config created: $SHARED_CONFIG"
 }
 
-# Main execution
-echo "🔄 OmniState Bidirectional Workflow Sync"
-echo "=========================================="
+function main() {
+    # Main execution
+    echo "🔄 OmniState Bidirectional Workflow Sync"
+    echo "=========================================="
 
-# Sync from .agents/workflows to .kilo/commands
-sync_workflows "$AGENT_WORKFLOWS" "$KILO_COMMANDS" "AGENT → KILO"
+    # Sync from .agents/workflows to .kilo/commands
+    sync_workflows "$AGENT_WORKFLOWS" "$KILO_COMMANDS" "AGENT → KILO"
 
-# Sync from .kilo/commands to .agents/workflows
-sync_workflows "$KILO_COMMANDS" "$AGENT_WORKFLOWS" "KILO → AGENT"
+    # Sync from .kilo/commands to .agents/workflows
+    sync_workflows "$KILO_COMMANDS" "$AGENT_WORKFLOWS" "KILO → AGENT"
 
-# Create shared configuration
-sync_shared_config
+    # Create shared configuration
+    sync_shared_config
 
-echo ""
-echo "✅ Sync complete!"
-echo "   📁 Agent workflows: $AGENT_WORKFLOWS"
-echo "   📁 Kilocode commands: $KILO_COMMANDS"
-echo "   📋 Shared config: $SHARED_CONFIG"
-echo ""
+    echo ""
+    echo "✅ Sync complete!"
+    echo "   📁 Agent workflows: $AGENT_WORKFLOWS"
+    echo "   📁 Kilocode commands: $KILO_COMMANDS"
+    echo "   📋 Shared config: $SHARED_CONFIG"
+    echo ""
+}
+
+# Run main if not sourced
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main
+fi
