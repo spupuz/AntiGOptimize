@@ -71,11 +71,20 @@ sync_workflows() {
             # TOTAL GIT PROTECTION
             if [ -f "$target_project/.gitignore" ]; then
                 new_patterns=()
+
+                # Read the entire .gitignore file into memory once.
+                # Prepend a newline so that we can easily match the beginning of a line
+                # using a standard literal string match for uniform logic.
+                content=$'\n'"$(<"$target_project/.gitignore")"
+
+                # Identify missing patterns natively without spawning external processes
                 for pattern in "$wfDir/" "${PROTECTED_PATTERNS[@]}"; do
-                    if ! grep -q "^$pattern" "$target_project/.gitignore"; then
+                    # Perform a literal substring match ensuring it appears at the start of a line
+                    if [[ ! "$content" == *$'\n'"$pattern"* ]]; then
                         new_patterns+=("$pattern")
                     fi
                 done
+
                 if [ ${#new_patterns[@]} -gt 0 ]; then
                     # Ensure trailing newline if missing
                     if [ -n "$(tail -c1 "$target_project/.gitignore" 2>/dev/null)" ]; then
