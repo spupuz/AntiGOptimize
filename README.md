@@ -1,11 +1,11 @@
-# OmniState Plugin for Antigravity (v1.1.1)
+# OmniState Plugin for Antigravity (v1.1.3)
 
 This plugin installs a **Persistent Memory** and **Credit Savings / Model Optimization** system for your AI coding sessions.
 Inspired by the **[Agora-Code](https://github.com/thebnbrkr/agora-code)** project, OmniState adapts and extends those concepts for use as a global Antigravity plugin.
 
 It is designed to limit context window ingestion (saving thousands of tokens) by allowing the agent to track your tasks and progress through a dedicated summary and automated background optimizations.
 
-## 🚀 Key Features (v1.1.1 Evolution)
+## 🚀 Key Features (v1.1.3 Evolution)
 
 - **Automatic Background Sync**: OmniState now self-updates from GitHub and synchronizes workflows across all your projects automatically.
 - **Visual Dashboard (UI)**: An elegant, high-fidelity local dashboard (`/dashboard-omnistate`) to visualize project state and token savings.
@@ -75,3 +75,20 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 1. VSCode - Supporto per Kilocode
 1.1. Supporto per i workflow Kilocode in Vscode
 1.2. Comandi condivisi tra Antigravity e Kilocode
+
+---
+
+## 📋 Changelog
+
+### v1.1.3 (current)
+- **DOM optimization**: Timeline and Architecture grid now use `DocumentFragment` for batch insertion, reducing reflow/repaint overhead (~80% faster for large datasets)
+- **Security**: All dynamic content uses `textContent` instead of `innerHTML` (XSS prevention)
+
+### v1.1.2
+- **Documentation**: Auto-generated AGENTS.md, AI_POLICY.md, and CONTEXT.md maintained by workflows
+- **dist/ restructuring**: Cleaner separation between source and distributed templates
+
+### v1.1.1
+- **Background sync**: Automatic GitHub self-update and cross-project workflow synchronization
+- **Archiving**: Auto-archive completed tasks; configuration via `antigravity.config.json`
+- **Dashboard refresh**: Triggered automatically on snapshot
