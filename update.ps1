@@ -1,5 +1,6 @@
-# OmniState Update & Sync Script (v1.1.2)
+# OmniState Update & Sync Script (v1.2.0)
 # PowerShell version for Windows and cross-platform compatibility
+# Supports: opencode, Antigravity (Gemini), Kilocode
 
 param(
     [string]$ProjectRoot = "",
@@ -12,9 +13,9 @@ param(
 # 1. Configuration & Paths
 $scriptDir = $PSScriptRoot
 $versionFile = Join-Path $scriptDir "VERSION.txt"
-$version = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { "1.1.2" }
+$version = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { "1.2.0" }
 $pluginName = "omnistate"
-$protectedPatterns = @("/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md", ".kilo/", ".omnistate/", ".roo/")
+$protectedPatterns = @("/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "omnistate.config.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md", ".opencode/", ".kilo/", ".omnistate/", ".roo/")
 
 # Detect global directories
 $globalBaseDir = Join-Path $HOME ".gemini\antigravity"
@@ -22,6 +23,10 @@ $globalPluginsDir = Join-Path $globalBaseDir "plugins"
 $globalWorkflowsDir = Join-Path $globalBaseDir "workflows"
 $globalKnowledgeDir = Join-Path $globalBaseDir "knowledge"
 $targetPluginPath = Join-Path $globalPluginsDir $pluginName
+
+# opencode paths
+$opencodeConfigDir = Join-Path $HOME ".config\opencode"
+$opencodeSkillsDir = Join-Path $HOME ".agents\skills"
 
 function Write-Log($message, $color = "White") {
     if (!$Silent) {
@@ -36,6 +41,9 @@ function Sync-Workflows($targetProject) {
     
     $sourceTemplates = Join-Path $targetPluginPath "dist\templates"
     if (!(Test-Path $sourceTemplates)) { $sourceTemplates = Join-Path $scriptDir "dist\templates" }
+
+    $sourceSkills = Join-Path $scriptDir ".opencode\skills"
+    if (!(Test-Path $sourceSkills)) { $sourceSkills = Join-Path $targetPluginPath ".opencode\skills" }
 
     if ((Test-Path $targetProject) -and (Test-Path $sourceWf)) {
         Write-Log "Synchronizing OmniState components to $targetProject..." "Cyan"
@@ -52,30 +60,39 @@ function Sync-Workflows($targetProject) {
                 if (!(Test-Path $destTemplates)) { New-Item -ItemType Directory -Path $destTemplates -Force | Out-Null }
                 Copy-Item -Path "$sourceTemplates\*" -Destination $destTemplates -Force
             }
+        }
 
-            # Git Protection
-            $gitignore = Join-Path $targetProject ".gitignore"
-            if (Test-Path $gitignore) {
-                $content = Get-Content $gitignore -Raw
-                $newPatterns = @()
-                $allPatterns = @("$wfDir/") + $protectedPatterns
+        # Sync opencode skills
+        if (Test-Path $sourceSkills) {
+            $destSkills = Join-Path $targetProject ".opencode\skills"
+            if (!(Test-Path $destSkills)) { New-Item -ItemType Directory -Path $destSkills -Force | Out-Null }
+            Copy-Item -Path "$sourceSkills\*" -Destination $destSkills -Recurse -Force
+            Write-Log "opencode skills synced." "Cyan"
+        }
 
-                # Use a literal string search to avoid regular expression edge cases
-                # such as overlapping alternations. Prepending a newline helps match
-                # patterns that appear at the beginning of a line consistently.
-                $contentWithNewline = "`n" + $content
+        # Sync opencode config if not present
+        $opencodeConfig = Join-Path $targetProject "opencode.json"
+        if (!(Test-Path $opencodeConfig) -and (Test-Path (Join-Path $scriptDir "opencode.json"))) {
+            Copy-Item -Path (Join-Path $scriptDir "opencode.json") -Destination $opencodeConfig -Force
+        }
 
-                foreach ($pattern in $allPatterns) {
-                    # Create a literal match string
-                    $lineToMatch = "`n" + $pattern
-                    if (-not $contentWithNewline.Contains($lineToMatch)) {
-                        $newPatterns += $pattern
-                    }
+        # Git Protection
+        $gitignore = Join-Path $targetProject ".gitignore"
+        if (Test-Path $gitignore) {
+            $content = Get-Content $gitignore -Raw
+            $newPatterns = @()
+
+            $contentWithNewline = "`n" + $content
+
+            foreach ($pattern in $protectedPatterns) {
+                $lineToMatch = "`n" + $pattern
+                if (-not $contentWithNewline.Contains($lineToMatch)) {
+                    $newPatterns += $pattern
                 }
+            }
 
-                if ($newPatterns.Count -gt 0) {
-                    Add-Content -Path $gitignore -Value $newPatterns -Encoding UTF8
-                }
+            if ($newPatterns.Count -gt 0) {
+                Add-Content -Path $gitignore -Value $newPatterns -Encoding UTF8
             }
         }
         Write-Log "Components synchronized and Git Protection enforced." "Green"
@@ -173,6 +190,23 @@ $kiMetadata | Out-File -FilePath (Join-Path $targetKnowledgePath "metadata.json"
 # Global Workflows
 $wfSource = Join-Path $scriptDir ".agent\workflows"
 if (Test-Path $wfSource) { Copy-Item -Path "$wfSource\*" -Destination $globalWorkflowsDir -Force }
+
+# Install opencode skills globally
+$opencodeSkillsSource = Join-Path $scriptDir ".opencode\skills"
+if (Test-Path $opencodeSkillsSource) {
+    if (!(Test-Path $opencodeSkillsDir)) { New-Item -ItemType Directory -Path $opencodeSkillsDir -Force | Out-Null }
+    Copy-Item -Path "$opencodeSkillsSource\*" -Destination $opencodeSkillsDir -Recurse -Force
+    Write-Log "opencode skills installed to $opencodeSkillsDir" "Green"
+}
+
+# Install opencode config if not present
+$opencodeConfigSource = Join-Path $scriptDir "opencode.json"
+$opencodeConfigDest = Join-Path $opencodeConfigDir "omnistate.json"
+if ((Test-Path $opencodeConfigSource) -and !(Test-Path $opencodeConfigDest)) {
+    if (!(Test-Path $opencodeConfigDir)) { New-Item -ItemType Directory -Path $opencodeConfigDir -Force | Out-Null }
+    Copy-Item -Path $opencodeConfigSource -Destination $opencodeConfigDest -Force
+    Write-Log "opencode config installed." "Green"
+}
 
 Write-Log "OmniState v$version successfully installed globally!" "Green"
 

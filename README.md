@@ -1,94 +1,101 @@
-# OmniState Plugin for Antigravity (v1.1.3)
+# OmniState v1.2.0
 
-This plugin installs a **Persistent Memory** and **Credit Savings / Model Optimization** system for your AI coding sessions.
-Inspired by the **[Agora-Code](https://github.com/thebnbrkr/agora-code)** project, OmniState adapts and extends those concepts for use as a global Antigravity plugin.
+**Persistent Memory** and **Token Optimization** system for AI coding sessions.
+Supports **opencode**, **Antigravity (Gemini)**, and **Kilocode**.
 
-It is designed to limit context window ingestion (saving thousands of tokens) by allowing the agent to track your tasks and progress through a dedicated summary and automated background optimizations.
+Inspired by **[Agora-Code](https://github.com/thebnbrkr/agora-code)**. Limits context window ingestion (saving thousands of tokens) by tracking tasks and progress through automated summaries and optimizations.
 
-## 🚀 Key Features (v1.1.3 Evolution)
+## 🚀 Key Features
 
-- **Automatic Background Sync**: OmniState now self-updates from GitHub and synchronizes workflows across all your projects automatically.
-- **Visual Dashboard (UI)**: An elegant, high-fidelity local dashboard (`/dashboard-omnistate`) to visualize project state and token savings.
-- **Intelligent Memory Archiving**: Automatically moves completed tasks to an archive to keep your active context as lean as possible.
-- **Context Purge**: Forcefully cleans the AI's context window on startup to prevent "hallucinations" or distractions from previous files.
-- **Dense Instructions**: Optimized skill logic to minimize token overhead during every interaction.
+- **Multi-Platform**: Works with opencode, Antigravity, and Kilocode out of the box
+- **Visual Dashboard**: Premium HTML dashboard (`/dashboard-omnistate`) with real-time metrics
+- **Intelligent Archiving**: Auto-moves completed tasks to keep context lean
+- **Context Purge**: Cleans the AI context window on startup to prevent distractions
+- **Token Savings**: Estimates and visualizes how many tokens OmniState saves per session
 
-## 📦 How to Install (Automated)
+## 📦 Install
 
-Since OmniState is a global plugin, you only need to install it once to make it available in **ALL YOUR PROJECTS**.
+One-time global install, available in all projects.
 
-1. **Clone or download** this repository folder into any location on your PC.
-2. Run the automated installer:
-   - **Windows:** Right-click **`update.ps1`** and select *Run with PowerShell*.
-   - **Linux:** Execute **`bash update.sh`** from the terminal.
-3. The script will automatically:
-   - Synchronize the latest version from GitHub.
-   - Install/Update the plugin into the global Antigravity directory (`~/.gemini/antigravity/plugins/omnistate`).
+```bash
+# Linux / macOS
+git clone https://github.com/spupuz/OmniState.git ~/OmniState
+cd ~/OmniState && bash update.sh
 
-## 🛠️ How to Use in Any Project
+# Windows (PowerShell)
+git clone https://github.com/spupuz/OmniState.git $HOME\OmniState
+cd $HOME\OmniState; .\update.ps1
+```
 
-Once installed globally, you can interact with OmniState using **Slash Commands** (`/`) or by asking for the specific **Skills**.
+### opencode Setup
 
-### 1. Initialization
-Run:
-> **/cost-setup**
+After installing, add the skills path to your `opencode.json`:
 
-This will set up the memory files and update your `.gitignore` to protect them from GitHub:
-- `project-summary.md` (Architecture & State Index)
-- `tasks-history.json` (Active tasks)
-- `tasks-archive.json` (Legacy tasks - **New in v1.1.1**)
-- `antigravity.config.json` (Configuration - **New in v1.1.1**)
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": ["~/.agents/skills"]
+  },
+  "instructions": ["AGENTS.md", "AI_POLICY.md", "CONTEXT.md", "project-summary.md"]
+}
+```
 
-### 2. At the start of a session
-> **/start-session**
+Or copy the included `opencode.json` to your project root.
 
-The agent performs a **Context Purge** and loads only the essential summaries. It also checks for updates in the background.
+## 🛠️ Usage
 
-### 3. During or at the end of a session
-> **/snapshot-session**
+| Command | When | What it does |
+|---------|------|-------------|
+| `/cost-setup` | First time only | Initializes memory files, git protection, cost routing |
+| `/start-session` | Start of session | Context purge, loads summaries, shows status |
+| `/snapshot-session` | End of session | Archives tasks, distills progress, creates chunk |
+| `/dashboard-omnistate` | Any time | Generates visual HTML dashboard with metrics |
 
-The agent:
-- Creates a compacted "session chunk".
-- **Auto-Archives** older completed tasks.
-- Updates the **Distilled Summary** in your project summary file.
-- Triggers a **Dashboard Refresh**.
+### Quick Start
 
-### 4. Visual Dashboard
-> **/dashboard-omnistate**
+1. **Init**: Run `/cost-setup` in your project
+2. **Start**: Run `/start-session` at the beginning of each session
+3. **Save**: Run `/snapshot-session` at the end to persist state
+4. **View**: Open `omnistate-dashboard.html` in a browser
 
-Generates a premium HTML dashboard (`omnistate-dashboard.html`) in your project root. Open it in a browser to see:
-- Real-time task progress.
-- Visual timeline of snapshots.
-- **Estimated Token Savings** counter.
+## 🌐 Platform Compatibility
 
-## 🌐 Universal Discovery (KI)
-OmniState is integrated with Antigravity's **Knowledge Item (KI)** system. If slash commands are not visible, type **"OmniState activation"** to force initialization.
+| Platform | Skills Location | Config |
+|----------|----------------|--------|
+| **opencode** | `.opencode/skills/` or `~/.agents/skills/` | `opencode.json` |
+| **Antigravity** | `~/.gemini/antigravity/plugins/omnistate/` | Knowledge Items |
+| **Kilocode** | `.kilo/commands/` | Synced via workflow sync |
 
 ## 💻 SSH / Remote Host One-Liner
+
 ```bash
 export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/spupuz/OmniState.git $REPO_DIR; cd $REPO_DIR && git pull && bash update.sh
 ```
 
 ---
-*OmniState - Engineered for Persistent Memory and Token-Efficient Development.*
-# Estensioni di compatibilità multi-IDEA
-1. VSCode - Supporto per Kilocode
-1.1. Supporto per i workflow Kilocode in Vscode
-1.2. Comandi condivisi tra Antigravity e Kilocode
-
----
 
 ## 📋 Changelog
 
-### v1.1.3 (current)
-- **DOM optimization**: Timeline and Architecture grid now use `DocumentFragment` for batch insertion, reducing reflow/repaint overhead (~80% faster for large datasets)
-- **Security**: All dynamic content uses `textContent` instead of `innerHTML` (XSS prevention)
+### v1.2.0 (current)
+- **opencode support**: Native skills in `.opencode/skills/` with `SKILL.md` format
+- **Multi-platform**: Unified installer supports opencode, Antigravity, and Kilocode
+- **Config**: Added `opencode.json` with `$schema` validation
+- **Plugin manifest**: Updated `plugin.json` with `platforms` and `opencode` fields
+
+### v1.1.3
+- **DOM optimization**: `DocumentFragment` batch insertion for dashboard (~80% faster)
+- **Security**: `textContent` instead of `innerHTML` (XSS prevention)
 
 ### v1.1.2
-- **Documentation**: Auto-generated AGENTS.md, AI_POLICY.md, and CONTEXT.md maintained by workflows
-- **dist/ restructuring**: Cleaner separation between source and distributed templates
+- **Documentation**: Auto-generated AGENTS.md, AI_POLICY.md, CONTEXT.md
+- **dist/ restructuring**: Cleaner separation of source and distributed assets
 
 ### v1.1.1
-- **Background sync**: Automatic GitHub self-update and cross-project workflow synchronization
-- **Archiving**: Auto-archive completed tasks; configuration via `antigravity.config.json`
+- **Background sync**: Auto GitHub self-update and cross-project workflow sync
+- **Archiving**: Auto-archive completed tasks
 - **Dashboard refresh**: Triggered automatically on snapshot
+
+---
+
+*OmniState - Persistent Memory and Token-Efficient Development.*

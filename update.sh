@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# OmniState Update & Sync Script (v1.1.2)
+# OmniState Update & Sync Script (v1.2.0)
 # This script manages global installation and local project synchronization.
+# Supports: opencode, Antigravity (Gemini), Kilocode
 
 # 1. Configuration & Paths
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION_FILE="$SCRIPT_DIR/VERSION.txt"
-VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "1.1.2")
+VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "1.2.0")
 PLUGIN_NAME="omnistate"
-PROTECTED_PATTERNS=("/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md" ".kilo/" ".omnistate/" ".roo/")
+PROTECTED_PATTERNS=("/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "omnistate.config.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md" ".opencode/" ".kilo/" ".omnistate/" ".roo/")
 
 # Detect global directories
 GLOBAL_BASE_DIR="$HOME/.gemini/antigravity"
@@ -20,6 +21,10 @@ GLOBAL_PLUGINS_DIR="$GLOBAL_BASE_DIR/plugins"
 GLOBAL_WORKFLOWS_DIR="$GLOBAL_BASE_DIR/workflows"
 GLOBAL_KNOWLEDGE_DIR="$GLOBAL_BASE_DIR/knowledge"
 TARGET_PLUGIN_PATH="$GLOBAL_PLUGINS_DIR/$PLUGIN_NAME"
+
+# opencode paths
+OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+OPENCODE_SKILLS_DIR="$HOME/.agents/skills"
 
 # 2. Argument Parsing
 ACTION="install"
@@ -48,9 +53,11 @@ sync_workflows() {
     local target_project="$1"
     local source_wf="$TARGET_PLUGIN_PATH/dist/workflows"
     local source_templates="$TARGET_PLUGIN_PATH/dist/templates"
+    local source_skills="$SCRIPT_DIR/.opencode/skills"
     
     if [ ! -d "$source_wf" ]; then source_wf="$SCRIPT_DIR/dist/workflows"; fi
     if [ ! -d "$source_templates" ]; then source_templates="$SCRIPT_DIR/dist/templates"; fi
+    if [ ! -d "$source_skills" ]; then source_skills="$TARGET_PLUGIN_PATH/.opencode/skills"; fi
 
     if [ -d "$target_project" ]; then
         log "\033[0;36mSynchronizing OmniState components to $target_project...\033[0m"
@@ -67,33 +74,45 @@ sync_workflows() {
                 mkdir -p "$target_project/$wfDir/templates"
                 cp -a "$source_templates/"* "$target_project/$wfDir/templates/"
             fi
-            
-            # TOTAL GIT PROTECTION
-            if [ -f "$target_project/.gitignore" ]; then
-                new_patterns=()
-
-                # Read the entire .gitignore file into memory once.
-                # Prepend a newline so that we can easily match the beginning of a line
-                # using a standard literal string match for uniform logic.
-                content=$'\n'"$(<"$target_project/.gitignore")"
-
-                # Identify missing patterns natively without spawning external processes
-                for pattern in "$wfDir/" "${PROTECTED_PATTERNS[@]}"; do
-                    # Perform a literal substring match ensuring it appears at the start of a line
-                    if [[ ! "$content" == *$'\n'"$pattern"* ]]; then
-                        new_patterns+=("$pattern")
-                    fi
-                done
-
-                if [ ${#new_patterns[@]} -gt 0 ]; then
-                    # Ensure trailing newline if missing
-                    if [ -n "$(tail -c1 "$target_project/.gitignore" 2>/dev/null)" ]; then
-                        echo "" >> "$target_project/.gitignore"
-                    fi
-                    printf "%s\n" "${new_patterns[@]}" >> "$target_project/.gitignore"
-                fi
-            fi
         done
+
+        # Sync opencode skills
+        if [ -d "$source_skills" ]; then
+            mkdir -p "$target_project/.opencode/skills"
+            cp -a "$source_skills/"* "$target_project/.opencode/skills/"
+            log "\033[0;36mopencode skills synced.\033[0m"
+        fi
+
+        # Sync opencode config if not present
+        if [ ! -f "$target_project/opencode.json" ] && [ -f "$SCRIPT_DIR/opencode.json" ]; then
+            cp "$SCRIPT_DIR/opencode.json" "$target_project/opencode.json"
+        fi
+
+        # TOTAL GIT PROTECTION
+        if [ -f "$target_project/.gitignore" ]; then
+            new_patterns=()
+
+            # Read the entire .gitignore file into memory once.
+            # Prepend a newline so that we can easily match the beginning of a line
+            # using a standard literal string match for uniform logic.
+            content=$'\n'"$(<"$target_project/.gitignore")"
+
+            # Identify missing patterns natively without spawning external processes
+            for pattern in "${PROTECTED_PATTERNS[@]}"; do
+                # Perform a literal substring match ensuring it appears at the start of a line
+                if [[ ! "$content" == *$'\n'"$pattern"* ]]; then
+                    new_patterns+=("$pattern")
+                fi
+            done
+
+            if [ ${#new_patterns[@]} -gt 0 ]; then
+                # Ensure trailing newline if missing
+                if [ -n "$(tail -c1 "$target_project/.gitignore" 2>/dev/null)" ]; then
+                    echo "" >> "$target_project/.gitignore"
+                fi
+                printf "%s\n" "${new_patterns[@]}" >> "$target_project/.gitignore"
+            fi
+        fi
         log "\033[0;32mComponents synchronized and Git Protection enforced.\033[0m"
     fi
 }
@@ -194,6 +213,20 @@ EOF
     # Global Workflows
     if [ -d "$SCRIPT_DIR/dist/workflows" ]; then
         cp -a "$SCRIPT_DIR/dist/workflows/"* "$GLOBAL_WORKFLOWS_DIR/"
+    fi
+
+    # Install opencode skills globally
+    if [ -d "$SCRIPT_DIR/.opencode/skills" ]; then
+        mkdir -p "$OPENCODE_SKILLS_DIR"
+        cp -a "$SCRIPT_DIR/.opencode/skills/"* "$OPENCODE_SKILLS_DIR/"
+        log "\033[0;32mopencode skills installed to $OPENCODE_SKILLS_DIR\033[0m"
+    fi
+
+    # Install opencode config if not present
+    if [ ! -f "$OPENCODE_CONFIG_DIR/omnistate.json" ] && [ -f "$SCRIPT_DIR/opencode.json" ]; then
+        mkdir -p "$OPENCODE_CONFIG_DIR"
+        cp "$SCRIPT_DIR/opencode.json" "$OPENCODE_CONFIG_DIR/omnistate.json"
+        log "\033[0;32mopencode config installed.\033[0m"
     fi
 
     log "\033[0;32mOmniState v$VERSION successfully installed globally!\033[0m"
