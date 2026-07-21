@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""collect-dashboard-data.py — Collects real project data for OmniState dashboard
+Reads: tasks-history.json, tasks-archive.json, chunks/, project-summary.md, omni_cost.json
+Writes: dashboard-data.json (used by dashboard.html)
+"""
+import json
+import os
+import sys
+import re
+from pathlib import Path
+from datetime import datetime, timezone
+
+def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
+    project = Path(project_dir).resolve()
+    tasks_history = project / "tasks-history.json"
+    tasks_archive = project / "tasks-archive.json"
+    project_summary = project / "project-summary.md"
+    omni_cost = project / "omni_cost.json"
+    chunks_dir = project / "chunks"
+    config_file = project / "omnistate.config.json"
+
+    def load_json(path):
+        try:
+            return json.loads(path.read_text())
+        except Exception:
+            return {}
+
+    def count_words(path):
+        try:
+            return len(path.read_text().split())
+        except Exception:
+            return 0
+
+    # 1. Project name
+    project_name = "Unknown Project"
+    if project_summary.exists():
+        for line in project_summary.read_text().splitlines()[:5]:
+            m = re.match(r'^#\s+(.+)', line)
+            if m:
+                project_name = m.group(1).strip()
+                break
+    if project_name == "Unknown Project":
+        cfg = load_json(config_file)
+        project_name = cfg.get("project_name", "") or project.name
+
+    # 2. Task counts
+    history = load_json(tasks_history)
+    tasks = history.get("tasks", [])
+    total_tasks = len(tasks)
+    active_tasks = sum(1 for t in tasks if t.get("status") == "todo")
+    done_tasks = sum(1 for t in tasks if t.get("status") == "done")
+
+    archive = load_json(tasks_archive)
+    archived_tasks = len(archive.get("tasks", []))
+
+    # 3. Snapshots
+    chunks = []
+    if chunks_dir.exists():
+        chunks = sorted(chunks_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
+    snapshots = len(chunks)
+
+    # 4. Token savings
+    total_words = sum(count_words(f) for f in chunks)
+    total_words += count_words(tasks_archive)
+    token_saved = int(total_words * 1.3) + (snapshots * 4000)
+    token_saved_k = max(token_saved // 1000, 1 if token_saved > 0 else 0)
+
+    # 5. Chart data (cumulative, oldest first)
+    chart_data = []
+    cumulative = 0
+    for f in reversed(chunks[:5]):
+        words = count_words(f)
+        cumulative += int(words * 1.3) + 4000
+        chart_data.append(cumulative // 1000)
+
+    # 6. Timeline
+    timeline = []
+    for f in chunks[:5]:
+        mtime = datetime.fromtimestamp(f.stat().st_mtime)
+        date_str = mtime.strftime("%b %d")
+        label = "Session"
+        for line in f.read_text().splitlines()[:3]:
+            m = re.match(r'^#\s+(.+)', line)
+            if m:
+                label = m.group(1).strip()[:40]
+                break
+        timeline.append({"date": date_str, "label": label, "text": "Session chunk captured"})
+
+    # 7. Cost data
+    cost = load_json(omni_cost)
+    cost_total = cost.get("total_cost", "0.00")
+    cost_by_model = cost.get("by_model", {})
+
+    # 8. Architecture
+    architecture = []
+    if project_summary.exists():
+        in_modules = False
+        for line in project_summary.read_text().splitlines():
+            if "odule" in line:
+                in_modules = True
+                continue
+            if in_modules:
+                m = re.match(r'^\s*-\s*`([^`]+)`\s*:\s*(.*)', line.strip())
+                if m:
+                    architecture.append({
+                        "role": m.group(1).split("/")[-1][:20],
+                        "text": m.group(2).strip()[:80]
+                    })
+                elif line.strip() and not line.startswith(" ") and not line.startswith("-"):
+                    break
+    if not architecture:
+        architecture = [{"role": "Project", "text": "See project-summary.md"}]
+
+    # Build output
+    cfg = load_json(config_file)
+    data = {
+        "projectName": project_name,
+        "version": cfg.get("omnistate_version", "1.3.0"),
+        "activeTasks": active_tasks,
+        "totalTasks": total_tasks + archived_tasks,
+        "archivedTasks": archived_tasks,
+        "doneTasks": done_tasks,
+        "snapshots": snapshots,
+        "tokenSavings": f"{token_saved_k}k",
+        "tokenSavingsRaw": token_saved,
+        "costTotal": str(cost_total),
+        "costByModel": cost_by_model,
+        "lastUpdate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "timeline": timeline,
+        "architecture": architecture[:6],
+        "chartData": chart_data,
+    }
+
+    Path(output_file).write_text(json.dumps(data, indent=2))
+    print(f"Dashboard data collected → {output_file}")
+    print(f"  Project: {project_name}")
+    print(f"  Active: {active_tasks} | Archived: {archived_tasks} | Snapshots: {snapshots}")
+    print(f"  Token savings: ~{token_saved_k}k")
+
+if __name__ == "__main__":
+    project_dir = sys.argv[1] if len(sys.argv) > 1 else "."
+    output_file = sys.argv[2] if len(sys.argv) > 2 else "dashboard-data.json"
+    collect(project_dir, output_file)
