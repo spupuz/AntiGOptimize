@@ -1,23 +1,41 @@
 ---
 name: start-session
-description: Optimized session startup with context purge and state restoration.
+description: Loads OmniState session state with minimal token usage. Use at the start of every coding session to restore project context efficiently.
 ---
-# Start Session (Economy v1.1.0)
 
-**SKILL GOAL:** Restore session state while minimizing the context window to maximize performance and save tokens.
+# Start Session
 
-**INSTRUCTIONS:**
+**Goal:** Restore session state while minimizing context window usage.
 
-1. **Context Purge:** Ignore all files/history not explicitly listed below. Start fresh.
-2. **Integrity Check:** Run global OmniState update script: `bash ~/.gemini/antigravity/plugins/omnistate/update.sh --auto .`
-3. **State Loading:**
-   - Read `antigravity.config.json` (settings).
-   - Read `project-summary.md` (architecture).
-   - Read `tasks-history.json` (active tasks).
-   - Read `AGENTS.md`, `AI_POLICY.md`, and `CONTEXT.md`.
-   - **Proactive Population**: If any of these files contain placeholders or are incomplete, perform a shallow scan of the repository to populate them with relevant project context.
-4. **Summary (Strictly English & Concise):**
-   - Display: "✅ OmniState v[version] active."
-   - Display: "📂 Core architecture loaded."
-   - List only "todo" tasks from `tasks-history.json`.
-5. **Enforcement:** Do not read full repository files until explicitly requested for a specific task.
+## Steps
+
+### 1. Context Purge
+Start fresh. Ignore files not listed below.
+
+### 2. Auto-Update
+Check for OmniState updates (runs once per day):
+- Find the update script in `~/.agents/skills/`, `~/.config/opencode/`, or `~/.gemini/antigravity/plugins/omnistate/`
+- Run: `bash <path>/update.sh --auto .`
+
+### 3. Load State
+Read these files (only if they exist):
+
+| File | Content |
+|------|---------|
+| `omnistate.config.json` | Settings and preferences |
+| `project-summary.md` | Architecture overview |
+| `tasks-history.json` | Active tasks |
+| `AGENTS.md` | Agent definitions |
+| `AI_POLICY.md` | Interaction rules |
+| `CONTEXT.md` | Project context |
+
+If any file has placeholders or is empty, scan the repository to populate it.
+
+### 4. Report
+Display concisely:
+- "OmniState v[version] active."
+- "Architecture loaded."
+- List only tasks with `status: "todo"` from `tasks-history.json`.
+
+### 5. Enforcement
+Do NOT read full repository files unless explicitly asked for a specific task.

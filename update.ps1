@@ -1,6 +1,6 @@
-# OmniState Update & Sync Script (v1.2.0)
-# PowerShell version for Windows and cross-platform compatibility
-# Supports: opencode, Antigravity (Gemini), Kilocode
+# OmniState Update & Sync Script (v1.3.0)
+# Universal installer for opencode, Antigravity, Kilocode, and any AI coding tool
+# Auto-detects installed platforms and syncs skills to all of them
 
 param(
     [string]$ProjectRoot = "",
@@ -10,209 +10,185 @@ param(
     [switch]$Silent
 )
 
-# 1. Configuration & Paths
+$ErrorActionPreference = "Stop"
+
+# ── Configuration ──────────────────────────────────────────────────────────────
 $scriptDir = $PSScriptRoot
-$versionFile = Join-Path $scriptDir "VERSION.txt"
-$version = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { "1.2.0" }
+$version = if (Test-Path (Join-Path $scriptDir "VERSION.txt")) {
+    (Get-Content (Join-Path $scriptDir "VERSION.txt") -Raw).Trim()
+} else { "1.3.0" }
 $pluginName = "omnistate"
-$protectedPatterns = @("/omnistate-dashboard.html", "project-summary.md", "tasks-history.json", "tasks-archive.json", "omnistate.config.json", "antigravity.config.json", "chunks/", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md", ".opencode/", ".kilo/", ".omnistate/", ".roo/")
+$repoUrl = "https://github.com/spupuz/OmniState.git"
 
-# Detect global directories
-$globalBaseDir = Join-Path $HOME ".gemini\antigravity"
-$globalPluginsDir = Join-Path $globalBaseDir "plugins"
-$globalWorkflowsDir = Join-Path $globalBaseDir "workflows"
-$globalKnowledgeDir = Join-Path $globalBaseDir "knowledge"
-$targetPluginPath = Join-Path $globalPluginsDir $pluginName
+$memoryFiles = @(
+    "omnistate.config.json", "project-summary.md", "tasks-history.json",
+    "tasks-archive.json", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md",
+    "omnistate-dashboard.html", "/omnistate-dashboard.html", "chunks/"
+)
+$ideDirs = @(".opencode/", ".kilo/", ".agents/", ".omnistate/", ".roo/")
 
-# opencode paths
-$opencodeConfigDir = Join-Path $HOME ".config\opencode"
-$opencodeSkillsDir = Join-Path $HOME ".agents\skills"
+# ── Logging ────────────────────────────────────────────────────────────────────
+function Write-Log($msg, $color = "White") { if (!$Silent) { Write-Host $msg -ForegroundColor $color } }
 
-function Write-Log($message, $color = "White") {
-    if (!$Silent) {
-        Write-Host $message -ForegroundColor $color
+# ── Platform Detection ─────────────────────────────────────────────────────────
+function Get-DetectedPlatforms {
+    $platforms = @()
+    if (Test-Path (Join-Path $HOME ".config\opencode")) { $platforms += "opencode" }
+    if (Test-Path (Join-Path $HOME ".gemini\antigravity")) { $platforms += "antigravity" }
+    if (Test-Path (Join-Path $HOME ".kilo") -Or Test-Path (Join-Path $HOME ".kilocode")) { $platforms += "kilocode" }
+    if (Test-Path (Join-Path $HOME ".roo")) { $platforms += "roo" }
+    if (Test-Path (Join-Path $HOME ".claude") -Or Test-Path (Join-Path $HOME ".agents")) { $platforms += "agents" }
+    return $platforms
+}
+
+function Get-SkillDirs($platform) {
+    switch ($platform) {
+        "opencode"     { return @((Join-Path $HOME ".agents\skills"), (Join-Path $HOME ".config\opencode\skills")) }
+        "antigravity"  { return @((Join-Path $HOME ".gemini\antigravity\plugins\$pluginName\dist\skills")) }
+        "kilocode"     { return @((Join-Path $HOME ".kilo\commands")) }
+        "roo"          { return @((Join-Path $HOME ".roo\commands")) }
+        "agents"       { return @((Join-Path $HOME ".agents\skills"), (Join-Path $HOME ".claude\skills")) }
+    }
+    return @()
+}
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+function Sync-ToProject($target) {
+    if (!(Test-Path $target)) { return }
+
+    Write-Log "Syncing OmniState to $target ..." "Cyan"
+
+    $skillsSource = Join-Path $scriptDir ".opencode\skills"
+    if (Test-Path $skillsSource) {
+        $dest = Join-Path $target ".opencode\skills"
+        if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+        Copy-Item -Path "$skillsSource\*" -Destination $dest -Recurse -Force
+    }
+
+    $wfSource = Join-Path $scriptDir "dist\workflows"
+    if (Test-Path $wfSource) {
+        foreach ($dir in @(".agents", ".agent")) {
+            $dest = Join-Path $target "$dir\workflows"
+            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+            Copy-Item -Path "$wfSource\*" -Destination $dest -Force
+        }
+    }
+
+    $tplSource = Join-Path $scriptDir "dist\templates"
+    if (Test-Path $tplSource) {
+        foreach ($dir in @(".agents", ".agent", ".opencode")) {
+            $dest = Join-Path $target "$dir\templates"
+            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+            Copy-Item -Path "$tplSource\*" -Destination $dest -Force
+        }
+    }
+
+    $opencodeConfig = Join-Path $target "opencode.json"
+    if (!(Test-Path $opencodeConfig) -and (Test-Path (Join-Path $scriptDir "opencode.json"))) {
+        Copy-Item -Path (Join-Path $scriptDir "opencode.json") -Destination $opencodeConfig -Force
+    }
+
+    $gitignore = Join-Path $target ".gitignore"
+    if (Test-Path $gitignore) {
+        $content = Get-Content $gitignore -Raw
+        $additions = @()
+        $allPatterns = $memoryFiles + $ideDirs
+        foreach ($pattern in $allPatterns) {
+            if (-not $content.Contains($pattern)) { $additions += $pattern }
+        }
+        if ($additions.Count -gt 0) { Add-Content -Path $gitignore -Value $additions -Encoding UTF8 }
+    }
+
+    Write-Log "Synced to $target" "Green"
+}
+
+function Auto-Update {
+    $stateDir = Join-Path $scriptDir ".omnistate"
+    if (!(Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
+    $checkFile = Join-Path $stateDir ".last_update_check"
+    $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+    $lastCheck = if (Test-Path $checkFile) { (Get-Content $checkFile -Raw).Trim() } else { "0" }
+    if ($lastCheck -notmatch '^\d+$') { $lastCheck = "0" }
+
+    if ($now - [int]$lastCheck -gt 86400) {
+        Write-Log "Checking for OmniState updates ..." "Yellow"
+        if ((Test-Path (Join-Path $scriptDir ".git")) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+            Set-Location $scriptDir
+            $remoteHash = (git ls-remote origin -h refs/heads/main 2>$null).Split("`t")[0]
+            $localHash = git rev-parse HEAD 2>$null
+            if ($remoteHash -and $remoteHash -ne $localHash) {
+                Write-Log "New version available! Updating ..." "Cyan"
+                git pull origin main --quiet
+                Write-Log "Updated to v$version" "Green"
+            }
+        }
+        Set-Content -Path $checkFile -Value $now
     }
 }
 
-# 2. Helpers
-function Sync-Workflows($targetProject) {
-    $sourceWf = Join-Path $targetPluginPath "dist\workflows"
-    if (!(Test-Path $sourceWf)) { $sourceWf = Join-Path $scriptDir "dist\workflows" }
-    
-    $sourceTemplates = Join-Path $targetPluginPath "dist\templates"
-    if (!(Test-Path $sourceTemplates)) { $sourceTemplates = Join-Path $scriptDir "dist\templates" }
+function Install-Global {
+    Write-Log "Installing OmniState v$version ..." "Cyan"
 
-    $sourceSkills = Join-Path $scriptDir ".opencode\skills"
-    if (!(Test-Path $sourceSkills)) { $sourceSkills = Join-Path $targetPluginPath ".opencode\skills" }
+    Auto-Update
 
-    if ((Test-Path $targetProject) -and (Test-Path $sourceWf)) {
-        Write-Log "Synchronizing OmniState components to $targetProject..." "Cyan"
-        $wfDirs = @(".agent", ".agents")
-        foreach ($wfDir in $wfDirs) {
-            # Sync Workflows
-            $destWf = Join-Path $targetProject "$wfDir\workflows"
-            if (!(Test-Path $destWf)) { New-Item -ItemType Directory -Path $destWf -Force | Out-Null }
-            Copy-Item -Path "$sourceWf\*" -Destination $destWf -Force
-            
-            # Sync Templates
-            if (Test-Path $sourceTemplates) {
-                $destTemplates = Join-Path $targetProject "$wfDir\templates"
-                if (!(Test-Path $destTemplates)) { New-Item -ItemType Directory -Path $destTemplates -Force | Out-Null }
-                Copy-Item -Path "$sourceTemplates\*" -Destination $destTemplates -Force
-            }
-        }
-
-        # Sync opencode skills
-        if (Test-Path $sourceSkills) {
-            $destSkills = Join-Path $targetProject ".opencode\skills"
-            if (!(Test-Path $destSkills)) { New-Item -ItemType Directory -Path $destSkills -Force | Out-Null }
-            Copy-Item -Path "$sourceSkills\*" -Destination $destSkills -Recurse -Force
-            Write-Log "opencode skills synced." "Cyan"
-        }
-
-        # Sync opencode config if not present
-        $opencodeConfig = Join-Path $targetProject "opencode.json"
-        if (!(Test-Path $opencodeConfig) -and (Test-Path (Join-Path $scriptDir "opencode.json"))) {
-            Copy-Item -Path (Join-Path $scriptDir "opencode.json") -Destination $opencodeConfig -Force
-        }
-
-        # Git Protection
-        $gitignore = Join-Path $targetProject ".gitignore"
-        if (Test-Path $gitignore) {
-            $content = Get-Content $gitignore -Raw
-            $newPatterns = @()
-
-            $contentWithNewline = "`n" + $content
-
-            foreach ($pattern in $protectedPatterns) {
-                $lineToMatch = "`n" + $pattern
-                if (-not $contentWithNewline.Contains($lineToMatch)) {
-                    $newPatterns += $pattern
+    $platforms = Get-DetectedPlatforms
+    if ($platforms.Count -eq 0) {
+        Write-Log "No supported AI coding tools detected." "Yellow"
+        Write-Log "Skills available locally in: $scriptDir\.opencode\skills\" "Yellow"
+    } else {
+        foreach ($platform in $platforms) {
+            Write-Log "Installing for $platform ..." "Cyan"
+            $dirs = Get-SkillDirs $platform
+            foreach ($dir in $dirs) {
+                if ($dir -and !(Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+                if ($dir) {
+                    Copy-Item -Path (Join-Path $scriptDir ".opencode\skills\*") -Destination $dir -Recurse -Force
+                    Write-Log "  -> $dir" "Green"
                 }
             }
-
-            if ($newPatterns.Count -gt 0) {
-                Add-Content -Path $gitignore -Value $newPatterns -Encoding UTF8
-            }
-        }
-        Write-Log "Components synchronized and Git Protection enforced." "Green"
-    }
-}
-
-function Check-GitHubUpdate {
-    $gitPath = Join-Path $targetPluginPath ".git"
-    if (Test-Path $gitPath) {
-        Set-Location $targetPluginPath
-        if (Get-Command git -ErrorAction SilentlyContinue) {
-            $remoteHash = (git ls-remote origin -h refs/heads/main).Split("`t")[0]
-            $localHash = (git rev-parse HEAD)
-            if ($remoteHash -ne $localHash) { return $false } # Update available
         }
     }
-    return $true # Up to date
+
+    # Ensure local .opencode/skills is populated from dist/skills
+    $localSkills = Join-Path $scriptDir ".opencode\skills"
+    if (!(Test-Path $localSkills)) { New-Item -ItemType Directory -Path $localSkills -Force | Out-Null }
+    $distSkills = Join-Path $scriptDir "dist\skills"
+    if (Test-Path $distSkills) {
+        foreach ($skillDir in (Get-ChildItem $distSkills -Directory)) {
+            $dest = Join-Path $localSkills $skillDir.Name
+            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+            Copy-Item -Path "$($skillDir.FullName)\*" -Destination $dest -Force
+        }
+    }
+
+    Write-Log "OmniState v$version installed successfully!" "Green"
+    Write-Host ""
+    Write-Host "  Skills installed to: ~/.agents/skills/" -ForegroundColor Cyan
+    Write-Host "  To use in a project: .\update.ps1 <project-path>" -ForegroundColor Cyan
+    Write-Host ""
 }
 
-# 3. Actions Logic
+# ── Main ───────────────────────────────────────────────────────────────────────
 if ($Check) {
-    if (Check-GitHubUpdate) { exit 0 } else { exit 1 }
+    if (Test-Path (Join-Path $scriptDir ".git")) {
+        Set-Location $scriptDir
+        $remoteHash = (git ls-remote origin -h refs/heads/main 2>$null).Split("`t")[0]
+        $localHash = git rev-parse HEAD 2>$null
+        if ($remoteHash -and $remoteHash -ne $localHash) { exit 1 }
+    }
+    exit 0
 }
 
 if ($Auto) {
-    $lastCheckFile = Join-Path $targetPluginPath ".last_update_check"
-    $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
-    $lastCheck = if (Test-Path $lastCheckFile) { (Get-Content $lastCheckFile -Raw).Trim() } else { 0 }
-    
-    # Validate numeric input to prevent arithmetic injection
-    if ($lastCheck -notmatch '^\d+$') { $lastCheck = 0 }
-
-    if ($now - $lastCheck -gt 86400) {
-        Write-Log "Checking for OmniState global updates..." "Yellow"
-        if (!(Check-GitHubUpdate)) {
-            Write-Log "New version detected! Updating global OmniState..." "Green"
-            Set-Location $targetPluginPath
-            git pull origin main --quiet
-            Set-Content -Path $lastCheckFile -Value $now
-            # Re-run install
-            powershell -File (Join-Path $targetPluginPath "update.ps1") -Silent
-        } else {
-            Set-Content -Path $lastCheckFile -Value $now
-        }
-    }
-    if ($ProjectRoot -ne "") {
-        Sync-Workflows $ProjectRoot
-    }
+    Auto-Update
+    if ($ProjectRoot) { Sync-ToProject $ProjectRoot }
     exit 0
 }
 
 if ($SyncOnly) {
-    Sync-Workflows $ProjectRoot
+    if ($ProjectRoot) { Sync-ToProject $ProjectRoot }
     exit 0
 }
 
-# 4. Default Install Logic
-Write-Log "Installing/Updating OmniState Globale (v$version)..." "Cyan"
-
-# Self-Healing
-$legacyWf = Join-Path $scriptDir "workflows"
-$newWf = Join-Path $scriptDir ".agent\workflows"
-if ((Test-Path $legacyWf) -and !(Test-Path $newWf)) {
-    New-Item -ItemType Directory -Path $newWf -Force | Out-Null
-    Copy-Item -Path "$legacyWf\*" -Destination $newWf -Force -Recurse
-    Remove-Item -Path $legacyWf -Recurse -Force
-}
-
-# Update from Git if in the source repo
-if ((Test-Path (Join-Path $scriptDir ".git")) -and (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Log "Fetching latest changes..." "Green"
-    git pull origin main --quiet
-}
-
-# Ensure global layout
-if (!(Test-Path $globalPluginsDir)) { New-Item -ItemType Directory -Path $globalPluginsDir -Force | Out-Null }
-if (!(Test-Path $globalWorkflowsDir)) { New-Item -ItemType Directory -Path $globalWorkflowsDir -Force | Out-Null }
-if (!(Test-Path $globalKnowledgeDir)) { New-Item -ItemType Directory -Path $globalKnowledgeDir -Force | Out-Null }
-
-# Install Plugin
-if (Test-Path $targetPluginPath) { Remove-Item -Path $targetPluginPath -Recurse -Force }
-New-Item -ItemType Directory -Path $targetPluginPath -Force | Out-Null
-Copy-Item -Path "$scriptDir\*" -Destination $targetPluginPath -Recurse -Exclude ".git"
-
-# Register Knowledge Item
-$targetKnowledgePath = Join-Path $globalKnowledgeDir $pluginName
-if (!(Test-Path $targetKnowledgePath)) { New-Item -ItemType Directory -Path $targetKnowledgePath -Force | Out-Null }
-$kiMetadata = @{
-    summary = "OmniState Global Plugin (v$version): Persistent Memory, Cost Savings, and Model Optimization. Keywords: cost-setup, start-session, snapshot-session, project-summary, tokens."
-    updatedAt = (Get-Date -uformat "%Y-%m-%dT%H:%M:%SZ")
-    references = @($targetPluginPath)
-} | ConvertTo-Json
-$kiMetadata | Out-File -FilePath (Join-Path $targetKnowledgePath "metadata.json") -Encoding UTF8 -Force
-
-# Global Workflows
-$wfSource = Join-Path $scriptDir ".agent\workflows"
-if (Test-Path $wfSource) { Copy-Item -Path "$wfSource\*" -Destination $globalWorkflowsDir -Force }
-
-# Install opencode skills globally
-$opencodeSkillsSource = Join-Path $scriptDir ".opencode\skills"
-if (Test-Path $opencodeSkillsSource) {
-    if (!(Test-Path $opencodeSkillsDir)) { New-Item -ItemType Directory -Path $opencodeSkillsDir -Force | Out-Null }
-    Copy-Item -Path "$opencodeSkillsSource\*" -Destination $opencodeSkillsDir -Recurse -Force
-    Write-Log "opencode skills installed to $opencodeSkillsDir" "Green"
-}
-
-# Install opencode config if not present
-$opencodeConfigSource = Join-Path $scriptDir "opencode.json"
-$opencodeConfigDest = Join-Path $opencodeConfigDir "omnistate.json"
-if ((Test-Path $opencodeConfigSource) -and !(Test-Path $opencodeConfigDest)) {
-    if (!(Test-Path $opencodeConfigDir)) { New-Item -ItemType Directory -Path $opencodeConfigDir -Force | Out-Null }
-    Copy-Item -Path $opencodeConfigSource -Destination $opencodeConfigDest -Force
-    Write-Log "opencode config installed." "Green"
-}
-
-Write-Log "OmniState v$version successfully installed globally!" "Green"
-
-if ($ProjectRoot -ne "") {
-    Sync-Workflows $ProjectRoot
-}
-
-Write-Log "`nAll set! Type 'OmniState activation' if slash commands are missing." "Cyan"
-if ($args.Count -eq 0 -and $ProjectRoot -eq "" -and $Host.Name -eq "ConsoleHost") { pause }
+Install-Global
+if ($ProjectRoot) { Sync-ToProject $ProjectRoot }

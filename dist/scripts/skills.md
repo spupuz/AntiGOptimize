@@ -1,24 +1,24 @@
-# Skills Definition
+# OmniState Skills
 
-This file defines all available skills for Omnistate. Each skill is a self-contained module that can be invoked via slash commands.
+Available skills for persistent memory and token optimization.
 
-## Available Skills
+## Skills
 
-### /cost-setup
-Manages configuration settings and initialization
+| Skill | Description | When to use |
+|-------|-------------|-------------|
+| `/cost-setup` | Initialize project memory and git protection | First time in a project |
+| `/start-session` | Load session state with minimal tokens | Start of each session |
+| `/snapshot-session` | Archive tasks, distill progress, save chunk | End of session |
+| `/dashboard-omnistate` | Generate visual HTML dashboard | Any time |
 
-### /start-session
-Verifies context requirements and loads project summary
+## Required Files
 
-### /snapshot-session
-Archives current work and updates session history
+For proper operation, these files should exist in the project root:
+- `omnistate.config.json` — Configuration
+- `project-summary.md` — Architecture index
+- `tasks-history.json` — Task tracking
+- `AGENTS.md` — Agent definitions
+- `AI_POLICY.md` — AI interaction rules
+- `CONTEXT.md` — Project context
 
-### /dashboard-omnistate
-Generates visual dashboard report
-
-## Skill Dependencies
-
-For proper operation, ensure all required files exist:
-- README.md (project documentation)
-- AGENTS.md (agent definitions)
-- skills.md (this file)
+All files are auto-created by `/cost-setup` and git-ignored by default.

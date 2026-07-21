@@ -24,6 +24,7 @@ project-summary.md
 tasks-history.json
 tasks-archive.json
 antigravity.config.json
+omnistate.config.json
 chunks/
 
 AGENTS.md

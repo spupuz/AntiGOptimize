@@ -1,246 +1,265 @@
 #!/bin/bash
+# OmniState Update & Sync Script (v1.3.0)
+# Universal installer for opencode, Antigravity, Kilocode, and any AI coding tool
+# Auto-detects installed platforms and syncs skills to all of them
 
-# OmniState Update & Sync Script (v1.2.0)
-# This script manages global installation and local project synchronization.
-# Supports: opencode, Antigravity (Gemini), Kilocode
+set -euo pipefail
 
-# 1. Configuration & Paths
+# ── Configuration ──────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VERSION_FILE="$SCRIPT_DIR/VERSION.txt"
-VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "1.2.0")
+VERSION=$(cat "$SCRIPT_DIR/VERSION.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.3.0")
 PLUGIN_NAME="omnistate"
-PROTECTED_PATTERNS=("/omnistate-dashboard.html" "project-summary.md" "tasks-history.json" "tasks-archive.json" "omnistate.config.json" "antigravity.config.json" "chunks/" "AGENTS.md" "AI_POLICY.md" "CONTEXT.md" ".opencode/" ".kilo/" ".omnistate/" ".roo/")
+REPO_URL="https://github.com/spupuz/OmniState.git"
 
-# Detect global directories
-GLOBAL_BASE_DIR="$HOME/.gemini/antigravity"
-if [ "$EUID" -eq 0 ] && [ "$HOME" == "/root" ]; then
-    GLOBAL_BASE_DIR="/root/.gemini/antigravity"
-fi
+# Memory files to protect from git
+MEMORY_FILES=(
+    "omnistate.config.json"
+    "project-summary.md"
+    "tasks-history.json"
+    "tasks-archive.json"
+    "AGENTS.md"
+    "AI_POLICY.md"
+    "CONTEXT.md"
+    "omnistate-dashboard.html"
+    "/omnistate-dashboard.html"
+    "chunks/"
+)
 
-GLOBAL_PLUGINS_DIR="$GLOBAL_BASE_DIR/plugins"
-GLOBAL_WORKFLOWS_DIR="$GLOBAL_BASE_DIR/workflows"
-GLOBAL_KNOWLEDGE_DIR="$GLOBAL_BASE_DIR/knowledge"
-TARGET_PLUGIN_PATH="$GLOBAL_PLUGINS_DIR/$PLUGIN_NAME"
+# IDE directories to protect
+IDE_DIRS=(".opencode/" ".kilo/" ".agents/" ".omnistate/" ".roo/")
 
-# opencode paths
-OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
-OPENCODE_SKILLS_DIR="$HOME/.agents/skills"
+# ── Platform Detection ─────────────────────────────────────────────────────────
+# Returns list of detected platform names
+detect_platforms() {
+    local platforms=()
 
-# 2. Argument Parsing
+    # opencode
+    if [ -d "$HOME/.config/opencode" ] || command -v opencode &>/dev/null; then
+        platforms+=("opencode")
+    fi
+
+    # Antigravity / Gemini
+    if [ -d "$HOME/.gemini/antigravity" ]; then
+        platforms+=("antigravity")
+    fi
+
+    # Kilocode
+    if [ -d "$HOME/.kilo" ] || [ -d "$HOME/.kilocode" ]; then
+        platforms+=("kilocode")
+    fi
+
+    # Roo Code
+    if [ -d "$HOME/.roo" ]; then
+        platforms+=("roo")
+    fi
+
+    # Claude Code / agents
+    if [ -d "$HOME/.claude" ] || [ -d "$HOME/.agents" ]; then
+        platforms+=("agents")
+    fi
+
+    echo "${platforms[@]}"
+}
+
+# Get skill install paths for a platform
+get_skill_dirs() {
+    local platform="$1"
+    case "$platform" in
+        opencode)
+            echo "$HOME/.agents/skills" "$HOME/.config/opencode/skills"
+            ;;
+        antigravity)
+            echo "$HOME/.gemini/antigravity/plugins/$PLUGIN_NAME/dist/skills"
+            ;;
+        kilocode)
+            echo "$HOME/.kilo/commands"
+            ;;
+        roo)
+            echo "$HOME/.roo/commands"
+            ;;
+        agents)
+            echo "$HOME/.agents/skills" "$HOME/.claude/skills"
+            ;;
+    esac
+}
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+SILENT=false
+log() { [ "$SILENT" = false ] && echo -e "$1" || true; }
+info() { log "\033[0;36m$1\033[0m"; }
+ok() { log "\033[0;32m$1\033[0m"; }
+warn() { log "\033[0;33m$1\033[0m"; }
+err() { log "\033[0;31m$1\033[0m"; }
+
+# ── Actions ────────────────────────────────────────────────────────────────────
+
+sync_to_project() {
+    local target="$1"
+    [ ! -d "$target" ] && return
+
+    info "Syncing OmniState to $target ..."
+
+    # Sync skills to .opencode/skills/
+    if [ -d "$SCRIPT_DIR/.opencode/skills" ]; then
+        mkdir -p "$target/.opencode/skills"
+        cp -a "$SCRIPT_DIR/.opencode/skills/"* "$target/.opencode/skills/"
+    fi
+
+    # Sync skills to .agents/workflows/
+    if [ -d "$SCRIPT_DIR/dist/workflows" ]; then
+        for dir in ".agents" ".agent"; do
+            mkdir -p "$target/$dir/workflows"
+            cp -a "$SCRIPT_DIR/dist/workflows/"* "$target/$dir/workflows/"
+        done
+    fi
+
+    # Sync templates locally
+    if [ -d "$SCRIPT_DIR/dist/templates" ]; then
+        for dir in ".agents" ".agent" ".opencode"; do
+            mkdir -p "$target/$dir/templates"
+            cp -a "$SCRIPT_DIR/dist/templates/"* "$target/$dir/templates/"
+        done
+    fi
+
+    # Copy opencode.json if not present
+    if [ ! -f "$target/opencode.json" ] && [ -f "$SCRIPT_DIR/opencode.json" ]; then
+        cp "$SCRIPT_DIR/opencode.json" "$target/opencode.json"
+    fi
+
+    # Enforce git protection
+    if [ -f "$target/.gitignore" ]; then
+        local content
+        content=$(<"$target/.gitignore")
+        local additions=()
+
+        for pattern in "${MEMORY_FILES[@]}" "${IDE_DIRS[@]}"; do
+            if [[ ! "$content" == *"$pattern"* ]]; then
+                additions+=("$pattern")
+            fi
+        done
+
+        if [ ${#additions[@]} -gt 0 ]; then
+            printf "\n%s\n" "${additions[@]}" >> "$target/.gitignore"
+        fi
+    fi
+
+    ok "Synced to $target"
+}
+
+auto_update() {
+    # Check for updates (24h throttle)
+    local state_dir="$SCRIPT_DIR/.omnistate"
+    mkdir -p "$state_dir"
+    local check_file="$state_dir/.last_update_check"
+    local now
+    now=$(date +%s)
+    local last_check=0
+    [ -f "$check_file" ] && last_check=$(<"$check_file")
+    last_check=${last_check//[!0-9]/}
+    last_check=${last_check:-0}
+
+    if (( now - last_check > 86400 )); then
+        warn "Checking for OmniState updates ..."
+        if [ -d "$SCRIPT_DIR/.git" ] && command -v git &>/dev/null; then
+            cd "$SCRIPT_DIR"
+            local remote_hash local_hash
+            remote_hash=$(git ls-remote origin -h refs/heads/main 2>/dev/null | awk '{print $1}')
+            local_hash=$(git rev-parse HEAD 2>/dev/null)
+
+            if [ -n "$remote_hash" ] && [ "$remote_hash" != "$local_hash" ]; then
+                info "New version available! Updating ..."
+                git pull origin main --quiet
+                ok "Updated to $(cat "$SCRIPT_DIR/VERSION.txt" | tr -d '[:space:]')"
+            fi
+        fi
+        echo "$now" > "$check_file"
+    fi
+}
+
+install_global() {
+    info "Installing OmniState v$VERSION ..."
+
+    # Auto-update first
+    auto_update
+
+    # Detect platforms
+    local platforms
+    platforms=$(detect_platforms)
+
+    if [ -z "$platforms" ]; then
+        warn "No supported AI coding tools detected."
+        warn "Skills are available locally in: $SCRIPT_DIR/.opencode/skills/"
+        warn "Add this path to your AI tool's skill directory."
+    else
+        for platform in $platforms; do
+            info "Installing for $platform ..."
+            local dirs
+            dirs=$(get_skill_dirs "$platform")
+            for dir in $dirs; do
+                if [ -n "$dir" ]; then
+                    mkdir -p "$dir"
+                    cp -a "$SCRIPT_DIR/.opencode/skills/"* "$dir/"
+                    ok "  -> $dir"
+                fi
+            done
+        done
+    fi
+
+    # Always ensure local .opencode/skills is populated
+    mkdir -p "$SCRIPT_DIR/.opencode/skills"
+    for skill_dir in "$SCRIPT_DIR/dist/skills"/*/; do
+        local skill_name
+        skill_name=$(basename "$skill_dir")
+        mkdir -p "$SCRIPT_DIR/.opencode/skills/$skill_name"
+        cp -a "$skill_dir"* "$SCRIPT_DIR/.opencode/skills/$skill_name/"
+    done
+
+    ok "OmniState v$VERSION installed successfully!"
+    echo ""
+    echo "  Skills installed to: ~/.agents/skills/"
+    echo "  To use in a project: run 'bash update.sh <project-path>'"
+    echo ""
+}
+
+# ── Main ───────────────────────────────────────────────────────────────────────
 ACTION="install"
 PROJECT_ROOT=""
-SILENT=false
 
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --sync-only) ACTION="sync"; PROJECT_ROOT="$2"; shift ;;
-        --auto) ACTION="auto"; PROJECT_ROOT="$2"; shift ;;
-        --check) ACTION="check" ;;
-        --silent) SILENT=true ;;
-        *) PROJECT_ROOT="$1" ;;
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --auto)    ACTION="auto"; PROJECT_ROOT="${2:-}"; shift 2 2>/dev/null || shift ;;
+        --sync)    ACTION="sync"; PROJECT_ROOT="${2:-}"; shift 2 2>/dev/null || shift ;;
+        --check)   ACTION="check" ;;
+        --silent)  SILENT=true; shift ;;
+        --help|-h)
+            echo "Usage: update.sh [--auto <project>] [--sync <project>] [--check] [--silent]"
+            echo "  --auto   Auto-update + sync to project"
+            echo "  --sync   Sync skills to project only"
+            echo "  --check  Check for updates (exit 1 if available)"
+            echo "  --silent Suppress output"
+            exit 0
+            ;;
+        *)         PROJECT_ROOT="$1" ;;
     esac
     shift
 done
 
-log() {
-    if [ "$SILENT" = false ]; then
-        echo -e "$1"
-    fi
-}
-
-# 3. Helpers
-sync_workflows() {
-    local target_project="$1"
-    local source_wf="$TARGET_PLUGIN_PATH/dist/workflows"
-    local source_templates="$TARGET_PLUGIN_PATH/dist/templates"
-    local source_skills="$SCRIPT_DIR/.opencode/skills"
-    
-    if [ ! -d "$source_wf" ]; then source_wf="$SCRIPT_DIR/dist/workflows"; fi
-    if [ ! -d "$source_templates" ]; then source_templates="$SCRIPT_DIR/dist/templates"; fi
-    if [ ! -d "$source_skills" ]; then source_skills="$TARGET_PLUGIN_PATH/.opencode/skills"; fi
-
-    if [ -d "$target_project" ]; then
-        log "\033[0;36mSynchronizing OmniState components to $target_project...\033[0m"
-        
-        for wfDir in ".agent" ".agents"; do
-            # Sync Workflows
-            if [ -d "$source_wf" ]; then
-                mkdir -p "$target_project/$wfDir/workflows"
-                cp -a "$source_wf/"* "$target_project/$wfDir/workflows/"
-            fi
-            
-            # Sync Templates (Local availability)
-            if [ -d "$source_templates" ]; then
-                mkdir -p "$target_project/$wfDir/templates"
-                cp -a "$source_templates/"* "$target_project/$wfDir/templates/"
-            fi
-        done
-
-        # Sync opencode skills
-        if [ -d "$source_skills" ]; then
-            mkdir -p "$target_project/.opencode/skills"
-            cp -a "$source_skills/"* "$target_project/.opencode/skills/"
-            log "\033[0;36mopencode skills synced.\033[0m"
-        fi
-
-        # Sync opencode config if not present
-        if [ ! -f "$target_project/opencode.json" ] && [ -f "$SCRIPT_DIR/opencode.json" ]; then
-            cp "$SCRIPT_DIR/opencode.json" "$target_project/opencode.json"
-        fi
-
-        # TOTAL GIT PROTECTION
-        if [ -f "$target_project/.gitignore" ]; then
-            new_patterns=()
-
-            # Read the entire .gitignore file into memory once.
-            # Prepend a newline so that we can easily match the beginning of a line
-            # using a standard literal string match for uniform logic.
-            content=$'\n'"$(<"$target_project/.gitignore")"
-
-            # Identify missing patterns natively without spawning external processes
-            for pattern in "${PROTECTED_PATTERNS[@]}"; do
-                # Perform a literal substring match ensuring it appears at the start of a line
-                if [[ ! "$content" == *$'\n'"$pattern"* ]]; then
-                    new_patterns+=("$pattern")
-                fi
-            done
-
-            if [ ${#new_patterns[@]} -gt 0 ]; then
-                # Ensure trailing newline if missing
-                if [ -n "$(tail -c1 "$target_project/.gitignore" 2>/dev/null)" ]; then
-                    echo "" >> "$target_project/.gitignore"
-                fi
-                printf "%s\n" "${new_patterns[@]}" >> "$target_project/.gitignore"
-            fi
-        fi
-        log "\033[0;32mComponents synchronized and Git Protection enforced.\033[0m"
-    fi
-}
-
-check_github_update() {
-    if [ -d "$TARGET_PLUGIN_PATH/.git" ]; then
-        cd "$TARGET_PLUGIN_PATH" || return
-        
-        # Fast check using ls-remote (no fetch of objects)
-        REMOTE_HASH=$(git ls-remote origin -h refs/heads/main | awk '{print $1}')
-        LOCAL_HASH=$(git rev-parse HEAD)
-        
-        if [ "$REMOTE_HASH" != "$LOCAL_HASH" ]; then
-            return 1 # Update available
-        fi
-    fi
-    return 0 # Up to date
-}
-
-# 4. Actions Logic
-main() {
-    if [ "$ACTION" == "check" ]; then
-        check_github_update
-        exit $?
-    fi
-
-    if [ "$ACTION" == "auto" ]; then
-        # 24h Throttle for GitHub check
-        LAST_CHECK_FILE="$TARGET_PLUGIN_PATH/.last_update_check"
-        NOW=$(date +%s)
-        LAST_CHECK=0
-        if [ -f "$LAST_CHECK_FILE" ]; then
-            LAST_CHECK=$(cat "$LAST_CHECK_FILE")
-            # Sanitize numeric input to prevent arithmetic injection
-            LAST_CHECK=${LAST_CHECK//[!0-9]/}
-            LAST_CHECK=${LAST_CHECK:-0}
-        fi
-
-        if (( NOW - LAST_CHECK > 86400 )); then
-            log "\033[0;33mChecking for OmniState global updates...\033[0m"
-            if ! check_github_update; then
-                log "\033[0;32mNew version detected! Updating global OmniState...\033[0m"
-                cd "$TARGET_PLUGIN_PATH" && git pull origin main --quiet
-                echo "$NOW" > "$LAST_CHECK_FILE"
-                # Re-run install to update global workflows/metadata
-                bash "$TARGET_PLUGIN_PATH/update.sh" --silent
-            else
-                echo "$NOW" > "$LAST_CHECK_FILE"
-            fi
-        fi
-        # Always sync local project if provided
-        if [ -n "$PROJECT_ROOT" ]; then
-            sync_workflows "$PROJECT_ROOT"
+case "$ACTION" in
+    install) install_global ;;
+    auto)
+        auto_update
+        [ -n "$PROJECT_ROOT" ] && sync_to_project "$PROJECT_ROOT"
+        ;;
+    sync)
+        [ -n "$PROJECT_ROOT" ] && sync_to_project "$PROJECT_ROOT"
+        ;;
+    check)
+        if [ -d "$SCRIPT_DIR/.git" ]; then
+            cd "$SCRIPT_DIR"
+            remote_hash=$(git ls-remote origin -h refs/heads/main 2>/dev/null | awk '{print $1}')
+            local_hash=$(git rev-parse HEAD 2>/dev/null)
+            [ "$remote_hash" != "$local_hash" ] && exit 1 || exit 0
         fi
         exit 0
-    fi
-
-    if [ "$ACTION" == "sync" ]; then
-        sync_workflows "$PROJECT_ROOT"
-        exit 0
-    fi
-
-    # 5. Default Install Logic (original behavior with improvements)
-    log "\033[0;36mInstalling/Updating OmniState Globale (v$VERSION)...\033[0m"
-
-    # Self-Healing
-    if [ -d "$SCRIPT_DIR/workflows" ] && [ ! -d "$SCRIPT_DIR/.agent/workflows" ]; then
-        mkdir -p "$SCRIPT_DIR/.agent/workflows"
-        mv "$SCRIPT_DIR/workflows/"* "$SCRIPT_DIR/.agent/workflows/" 2>/dev/null
-        rm -rf "$SCRIPT_DIR/workflows"
-    fi
-
-    # Update from Git if in the source repo
-    if [ -d "$SCRIPT_DIR/.git" ] && command -v git &> /dev/null; then
-        log "\033[0;32mFetching latest changes...\033[0m"
-        git pull origin main --quiet
-    fi
-
-    # Ensure global layout
-    mkdir -p "$GLOBAL_PLUGINS_DIR" "$GLOBAL_WORKFLOWS_DIR" "$GLOBAL_KNOWLEDGE_DIR"
-
-    # Install Plugin
-    rm -rf "$TARGET_PLUGIN_PATH"
-    mkdir -p "$TARGET_PLUGIN_PATH"
-    cp -a "$SCRIPT_DIR/." "$TARGET_PLUGIN_PATH/"
-    rm -rf "$TARGET_PLUGIN_PATH/.git" # Remove git from the installed copy to keep it a flat plugin unless user specifically wants dev mode
-
-    # Register Knowledge Item
-    mkdir -p "$GLOBAL_KNOWLEDGE_DIR/$PLUGIN_NAME/artifacts"
-    cat <<EOF > "$GLOBAL_KNOWLEDGE_DIR/$PLUGIN_NAME/metadata.json"
-{
-  "summary": "OmniState Global Plugin (v$VERSION): Persistent Memory, Cost Savings, and Model Optimization. Keywords: cost-setup, start-session, snapshot-session, project-summary, tokens.",
-  "updatedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "references": ["$TARGET_PLUGIN_PATH"]
-}
-EOF
-
-    # Global Workflows
-    if [ -d "$SCRIPT_DIR/dist/workflows" ]; then
-        cp -a "$SCRIPT_DIR/dist/workflows/"* "$GLOBAL_WORKFLOWS_DIR/"
-    fi
-
-    # Install opencode skills globally
-    if [ -d "$SCRIPT_DIR/.opencode/skills" ]; then
-        mkdir -p "$OPENCODE_SKILLS_DIR"
-        cp -a "$SCRIPT_DIR/.opencode/skills/"* "$OPENCODE_SKILLS_DIR/"
-        log "\033[0;32mopencode skills installed to $OPENCODE_SKILLS_DIR\033[0m"
-    fi
-
-    # Install opencode config if not present
-    if [ ! -f "$OPENCODE_CONFIG_DIR/omnistate.json" ] && [ -f "$SCRIPT_DIR/opencode.json" ]; then
-        mkdir -p "$OPENCODE_CONFIG_DIR"
-        cp "$SCRIPT_DIR/opencode.json" "$OPENCODE_CONFIG_DIR/omnistate.json"
-        log "\033[0;32mopencode config installed.\033[0m"
-    fi
-
-    log "\033[0;32mOmniState v$VERSION successfully installed globally!\033[0m"
-
-    if [ -n "$PROJECT_ROOT" ]; then
-        sync_workflows "$PROJECT_ROOT"
-    fi
-
-    echo -e "\n\033[0;36mAll set! Type 'OmniState activation' if slash commands are missing.\033[0m"
-    if [ -z "$NON_INTERACTIVE" ] && [ -z "$PROJECT_ROOT" ] && [[ $- == *i* ]]; then
-        read -p "Press enter to exit..."
-    fi
-}
-
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
-fi
+        ;;
+esac
