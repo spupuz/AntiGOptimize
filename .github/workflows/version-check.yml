@@ -1,0 +1,28 @@
+name: Version Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify version consistency
+        run: |
+          VERSION_TXT=$(cat VERSION.txt | tr -d '[:space:]')
+          PLUGIN_VER=$(grep -o '"version": "[^"]*"' plugin.json | head -1 | cut -d'"' -f4)
+          
+          echo "VERSION.txt: $VERSION_TXT"
+          echo "plugin.json: $PLUGIN_VER"
+          
+          if [ "$VERSION_TXT" != "$PLUGIN_VER" ]; then
+            echo "::error::Version mismatch! VERSION.txt ($VERSION_TXT) != plugin.json ($PLUGIN_VER)"
+            exit 1
+          fi
+          
+          echo "Versions match: $VERSION_TXT"

@@ -1,0 +1,87 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'VERSION.txt'
+      - 'plugin.json'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat VERSION.txt | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" -20)
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "$LAST_TAG"..HEAD)
+          fi
+          
+          # Escape multiline for output
+          {
+            echo "changes<<EOF"
+            echo "$COMMITS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "v${{ steps.version.outputs.version }}"
+          body: |
+            ## Changes
+            
+            ${{ steps.changelog.outputs.changes }}
+            
+            ## Install
+            
+            ```bash
+            # Linux / macOS
+            git clone https://github.com/${{ github.repository }}.git ~/OmniState
+            cd ~/OmniState && git checkout v${{ steps.version.outputs.version }} && bash update.sh
+            
+            # Windows (PowerShell)
+            git clone https://github.com/${{ github.repository }}.git $HOME\OmniState
+            cd $HOME\OmniState; git checkout v${{ steps.version.outputs.version }}; .\update.ps1
+            ```
+            
+            See [README](https://github.com/${{ github.repository }}#-changelog) for full history.
+          draft: false
+          prerelease: false
