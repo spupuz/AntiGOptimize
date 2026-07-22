@@ -101,6 +101,104 @@ inject_version() {
     fi
 }
 
+# Get source directory for a platform (skill format vs workflow format)
+get_platform_source() {
+    local platform="$1"
+    case "$platform" in
+        opencode|agents|claude)
+            echo ".opencode/skills"
+            ;;
+        antigravity|kilocode|roo)
+            echo "dist/workflows"
+            ;;
+    esac
+}
+
+# Get destination directory for a platform in a project
+get_platform_dest() {
+    local platform="$1"
+    case "$platform" in
+        opencode)
+            echo ".opencode/skills"
+            ;;
+        agents|claude)
+            echo ".agents/skills"
+            ;;
+        antigravity)
+            echo ".agents/workflows"
+            ;;
+        kilocode)
+            echo ".kilo/commands"
+            ;;
+        roo)
+            echo ".roo/commands"
+            ;;
+    esac
+}
+
+# Detect which platforms a specific project uses
+detect_project_platforms() {
+    local target="$1"
+    local platforms=()
+
+    # opencode
+    if [ -f "$target/opencode.json" ] || [ -d "$target/.opencode" ]; then
+        platforms+=("opencode")
+    fi
+
+    # kilocode
+    if [ -d "$target/.kilo" ] || [ -f "$target/.kilo/config.json" ]; then
+        platforms+=("kilocode")
+    fi
+
+    # agents (Claude Code, Antigravity)
+    if [ -d "$target/.agent" ] || [ -d "$target/.agents" ]; then
+        platforms+=("agents")
+        # Antigravity usa .agents/workflows
+        if [ -d "$target/.agents/workflows" ]; then
+            platforms+=("antigravity")
+        fi
+    fi
+
+    # roo
+    if [ -d "$target/.roo" ]; then
+        platforms+=("roo")
+    fi
+
+    echo "${platforms[@]}"
+}
+
+# Install skills for a specific platform with correct format
+install_for_platform() {
+    local platform="$1"
+    local target="$2"
+    local source_dir dest_dir
+
+    source_dir=$(get_platform_source "$platform")
+    dest_dir=$(get_platform_dest "$platform")
+
+    if [ -z "$source_dir" ] || [ -z "$dest_dir" ]; then
+        return
+    fi
+
+    local full_dest="$target/$dest_dir"
+    mkdir -p "$full_dest"
+
+    if [ -d "$SCRIPT_DIR/$source_dir" ]; then
+        if [ "$platform" = "opencode" ] || [ "$platform" = "agents" ] || [ "$platform" = "claude" ]; then
+            # Formato skill: copia sottodirectory con SKILL.md
+            cp -a "$SCRIPT_DIR/$source_dir/"* "$full_dest/"
+        else
+            # Formato workflow: copia solo file .md piatti
+            for file in "$SCRIPT_DIR/$source_dir/"*.md; do
+                if [ -f "$file" ]; then
+                    cp "$file" "$full_dest/"
+                fi
+            done
+        fi
+    fi
+}
+
 # ── Actions ────────────────────────────────────────────────────────────────────
 
 sync_to_project() {
@@ -114,19 +212,22 @@ sync_to_project() {
 
     info "Syncing OmniState to $target ..."
 
-    # Sync skills to .opencode/skills/
-    if [ -d "$SCRIPT_DIR/.opencode/skills" ]; then
-        mkdir -p "$target/.opencode/skills"
-        cp -a "$SCRIPT_DIR/.opencode/skills/"* "$target/.opencode/skills/"
-    fi
+    # Detect platforms from project
+    local project_platforms
+    project_platforms=$(detect_project_platforms "$target")
 
-    # Sync skills to .agents/workflows/
-    if [ -d "$SCRIPT_DIR/dist/workflows" ]; then
-        for dir in ".agents" ".agent"; do
-            mkdir -p "$target/$dir/workflows"
-            cp -a "$SCRIPT_DIR/dist/workflows/"* "$target/$dir/workflows/"
-        done
-    fi
+    # Detect global platforms
+    local global_platforms
+    global_platforms=$(detect_platforms)
+
+    # Combine (project has priority)
+    local all_platforms
+    all_platforms=$(echo "$project_platforms $global_platforms" | tr ' ' '\n' | sort -u)
+
+    # Install skills for each detected platform with correct format
+    for platform in $all_platforms; do
+        install_for_platform "$platform" "$target"
+    done
 
     # Sync templates locally
     if [ -d "$SCRIPT_DIR/dist/templates" ]; then
@@ -218,12 +319,24 @@ install_global() {
     else
         for platform in $platforms; do
             info "Installing for $platform ..."
+            local source_dir
+            source_dir=$(get_platform_source "$platform")
             local dirs
             dirs=$(get_skill_dirs "$platform")
             for dir in $dirs; do
                 if [ -n "$dir" ]; then
                     mkdir -p "$dir"
-                    cp -a "$SCRIPT_DIR/.opencode/skills/"* "$dir/"
+                    if [ "$platform" = "opencode" ] || [ "$platform" = "agents" ] || [ "$platform" = "claude" ]; then
+                        # Formato skill: copia sottodirectory
+                        cp -a "$SCRIPT_DIR/$source_dir/"* "$dir/"
+                    else
+                        # Formato workflow: copia solo file .md piatti
+                        for file in "$SCRIPT_DIR/$source_dir/"*.md; do
+                            if [ -f "$file" ]; then
+                                cp "$file" "$dir/"
+                            fi
+                        done
+                    fi
                     ok "  -> $dir"
                 fi
             done

@@ -59,6 +59,88 @@ function Inject-Version($file, $version) {
     }
 }
 
+# Get source directory for a platform (skill format vs workflow format)
+function Get-PlatformSource($platform) {
+    switch ($platform) {
+        "opencode" { return ".opencode\skills" }
+        "agents"   { return ".opencode\skills" }
+        "claude"   { return ".opencode\skills" }
+        "antigravity" { return "dist\workflows" }
+        "kilocode" { return "dist\workflows" }
+        "roo"      { return "dist\workflows" }
+    }
+    return ""
+}
+
+# Get destination directory for a platform in a project
+function Get-PlatformDest($platform) {
+    switch ($platform) {
+        "opencode" { return ".opencode\skills" }
+        "agents"   { return ".agents\skills" }
+        "claude"   { return ".agents\skills" }
+        "antigravity" { return ".agents\workflows" }
+        "kilocode" { return ".kilo\commands" }
+        "roo"      { return ".roo\commands" }
+    }
+    return ""
+}
+
+# Detect which platforms a specific project uses
+function Get-ProjectPlatforms($target) {
+    $platforms = @()
+
+    # opencode
+    if ((Test-Path (Join-Path $target "opencode.json")) -Or (Test-Path (Join-Path $target ".opencode"))) {
+        $platforms += "opencode"
+    }
+
+    # kilocode
+    if ((Test-Path (Join-Path $target ".kilo")) -Or (Test-Path (Join-Path $target ".kilo\config.json"))) {
+        $platforms += "kilocode"
+    }
+
+    # agents (Claude Code, Antigravity)
+    if ((Test-Path (Join-Path $target ".agent")) -Or (Test-Path (Join-Path $target ".agents"))) {
+        $platforms += "agents"
+        # Antigravity usa .agents/workflows
+        if (Test-Path (Join-Path $target ".agents\workflows")) {
+            $platforms += "antigravity"
+        }
+    }
+
+    # roo
+    if (Test-Path (Join-Path $target ".roo")) {
+        $platforms += "roo"
+    }
+
+    return $platforms
+}
+
+# Install skills for a specific platform with correct format
+function Install-ForPlatform($platform, $target) {
+    $sourceDir = Get-PlatformSource $platform
+    $destDir = Get-PlatformDest $platform
+
+    if (-not $sourceDir -Or -not $destDir) { return }
+
+    $fullSource = Join-Path $scriptDir $sourceDir
+    $fullDest = Join-Path $target $destDir
+
+    if (-not (Test-Path $fullSource)) { return }
+
+    if (-not (Test-Path $fullDest)) { New-Item -ItemType Directory -Path $fullDest -Force | Out-Null }
+
+    if ($platform -eq "opencode" -Or $platform -eq "agents" -Or $platform -eq "claude") {
+        # Formato skill: copia sottodirectory
+        Copy-Item -Path "$fullSource\*" -Destination $fullDest -Recurse -Force
+    } else {
+        # Formato workflow: copia solo file .md piatti
+        Get-ChildItem -Path $fullSource -Filter "*.md" -File | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination $fullDest -Force
+        }
+    }
+}
+
 function Sync-ToProject($target) {
     if (!(Test-Path $target)) { return }
 
@@ -71,20 +153,18 @@ function Sync-ToProject($target) {
 
     Write-Log "Syncing OmniState to $target ..." "Cyan"
 
-    $skillsSource = Join-Path $scriptDir ".opencode\skills"
-    if (Test-Path $skillsSource) {
-        $dest = Join-Path $target ".opencode\skills"
-        if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
-        Copy-Item -Path "$skillsSource\*" -Destination $dest -Recurse -Force
-    }
+    # Detect platforms from project
+    $projectPlatforms = Get-ProjectPlatforms $target
 
-    $wfSource = Join-Path $scriptDir "dist\workflows"
-    if (Test-Path $wfSource) {
-        foreach ($dir in @(".agents", ".agent")) {
-            $dest = Join-Path $target "$dir\workflows"
-            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
-            Copy-Item -Path "$wfSource\*" -Destination $dest -Force
-        }
+    # Detect global platforms
+    $globalPlatforms = Get-DetectedPlatforms
+
+    # Combine (project has priority)
+    $allPlatforms = @($projectPlatforms + $globalPlatforms) | Sort-Object -Unique
+
+    # Install skills for each detected platform with correct format
+    foreach ($platform in $allPlatforms) {
+        Install-ForPlatform $platform $target
     }
 
     $tplSource = Join-Path $scriptDir "dist\templates"
@@ -166,11 +246,21 @@ function Install-Global {
     } else {
         foreach ($platform in $platforms) {
             Write-Log "Installing for $platform ..." "Cyan"
+            $sourceDir = Get-PlatformSource $platform
             $dirs = Get-SkillDirs $platform
             foreach ($dir in $dirs) {
                 if ($dir -and !(Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
                 if ($dir) {
-                    Copy-Item -Path (Join-Path $scriptDir ".opencode\skills\*") -Destination $dir -Recurse -Force
+                    $fullSource = Join-Path $scriptDir $sourceDir
+                    if ($platform -eq "opencode" -Or $platform -eq "agents" -Or $platform -eq "claude") {
+                        # Formato skill: copia sottodirectory
+                        Copy-Item -Path "$fullSource\*" -Destination $dir -Recurse -Force
+                    } else {
+                        # Formato workflow: copia solo file .md piatti
+                        Get-ChildItem -Path $fullSource -Filter "*.md" -File | ForEach-Object {
+                            Copy-Item -Path $_.FullName -Destination $dir -Force
+                        }
+                    }
                     Write-Log "  -> $dir" "Green"
                 }
             }
