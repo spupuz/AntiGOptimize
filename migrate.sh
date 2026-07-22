@@ -1,5 +1,5 @@
 #!/bin/bash
-# OmniState Migration Script (v1.4.0)
+# OmniState Migration Script
 # Migrates antigravity.config.json → omnistate.config.json
 # Safe for git projects - backups stored in .omnistate/backups/
 
@@ -7,6 +7,7 @@ set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VERSION=$(cat "$SCRIPT_DIR/VERSION.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.4.0")
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 SILENT=false
@@ -58,7 +59,7 @@ migrate_project() {
     # Migrate schema
     if command -v jq &>/dev/null; then
         # Use jq for proper JSON transformation
-        jq '
+        jq --arg version "$VERSION" '
             # Remove compression_level
             del(.optimization.compression_level) |
             # Add project_name if missing
@@ -67,7 +68,7 @@ migrate_project() {
             .models.preferred_lite = "" |
             .models.preferred_pro = "" |
             # Update version
-            .omnistate_version = "1.4.0"
+            .omnistate_version = $version
         ' "$old_config" > "$new_config"
     else
         # Fallback: copy and warn about manual cleanup

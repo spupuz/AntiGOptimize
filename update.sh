@@ -1,5 +1,5 @@
 #!/bin/bash
-# OmniState Update & Sync Script (v1.4.0)
+# OmniState Update & Sync Script
 # Universal installer for opencode, Antigravity, Kilocode, and any AI coding tool
 # Auto-detects installed platforms and syncs skills to all of them
 
@@ -92,6 +92,15 @@ ok() { log "\033[0;32m$1\033[0m"; }
 warn() { log "\033[0;33m$1\033[0m"; }
 err() { log "\033[0;31m$1\033[0m"; }
 
+# ── Helpers ────────────────────────────────────────────────────────────────────
+inject_version() {
+    local file="$1"
+    local version="$2"
+    if [ -f "$file" ]; then
+        sed -i "s/{{VERSION}}/$version/g" "$file"
+    fi
+}
+
 # ── Actions ────────────────────────────────────────────────────────────────────
 
 sync_to_project() {
@@ -125,11 +134,21 @@ sync_to_project() {
             mkdir -p "$target/$dir/templates"
             cp -a "$SCRIPT_DIR/dist/templates/"* "$target/$dir/templates/"
         done
+        # Inject version into templates
+        for dir in ".agents" ".agent" ".opencode"; do
+            if [ -f "$target/$dir/templates/omnistate.config.json" ]; then
+                inject_version "$target/$dir/templates/omnistate.config.json" "$VERSION"
+            fi
+            if [ -f "$target/$dir/templates/dashboard.html" ]; then
+                inject_version "$target/$dir/templates/dashboard.html" "$VERSION"
+            fi
+        done
     fi
 
-    # Copy opencode.json if not present
-    if [ ! -f "$target/opencode.json" ] && [ -f "$SCRIPT_DIR/opencode.json" ]; then
-        cp "$SCRIPT_DIR/opencode.json" "$target/opencode.json"
+    # Copy omnistate.config.json to project root if not present
+    if [ ! -f "$target/omnistate.config.json" ] && [ -f "$SCRIPT_DIR/dist/templates/omnistate.config.json" ]; then
+        cp "$SCRIPT_DIR/dist/templates/omnistate.config.json" "$target/omnistate.config.json"
+        inject_version "$target/omnistate.config.json" "$VERSION"
     fi
 
     # Enforce git protection
@@ -233,9 +252,9 @@ PROJECT_ROOT=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --auto)    ACTION="auto"; PROJECT_ROOT="${2:-}"; shift 2 2>/dev/null || shift ;;
-        --sync)    ACTION="sync"; PROJECT_ROOT="${2:-}"; shift 2 2>/dev/null || shift ;;
-        --check)   ACTION="check" ;;
+        --auto)    ACTION="auto"; shift; PROJECT_ROOT="${1:-}"; shift ;;
+        --sync)    ACTION="sync"; shift; PROJECT_ROOT="${1:-}"; shift ;;
+        --check)   ACTION="check"; shift ;;
         --silent)  SILENT=true; shift ;;
         --help|-h)
             echo "Usage: update.sh [--auto <project>] [--sync <project>] [--check] [--silent]"
@@ -245,9 +264,8 @@ while [ $# -gt 0 ]; do
             echo "  --silent Suppress output"
             exit 0
             ;;
-        *)         PROJECT_ROOT="$1" ;;
+        *)         PROJECT_ROOT="$1"; shift ;;
     esac
-    shift
 done
 
 case "$ACTION" in

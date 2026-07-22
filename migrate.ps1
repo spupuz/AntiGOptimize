@@ -1,4 +1,4 @@
-# OmniState Migration Script (v1.4.0)
+# OmniState Migration Script
 # Migrates antigravity.config.json → omnistate.config.json
 # Safe for git projects - backups stored in .omnistate/backups/
 
@@ -9,6 +9,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# ── Configuration ──────────────────────────────────────────────────────────────
+$scriptDir = $PSScriptRoot
+$version = if (Test-Path (Join-Path $scriptDir "VERSION.txt")) {
+    (Get-Content (Join-Path $scriptDir "VERSION.txt") -Raw).Trim()
+} else { "1.4.0" }
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 function Write-Log($msg, $color = "White") { if (!$Silent) { Write-Host $msg -ForegroundColor $color } }
@@ -50,7 +56,7 @@ function Move-LegacyConfig($projectRoot) {
 
     # Create new config object
     $newJson = [PSCustomObject]@{
-        omnistate_version = "1.4.0"
+        omnistate_version = $version
         project_name = if ($oldJson.project_name) { $oldJson.project_name } else { "" }
         optimization = [PSCustomObject]@{
             archive_threshold_done = $oldJson.optimization.archive_threshold_done

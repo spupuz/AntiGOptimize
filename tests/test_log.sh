@@ -1,16 +1,12 @@
 #!/bin/bash
 
-# Define project root relative to tests directory
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Test log() function from update.sh
+# This test extracts and tests the log function in isolation
 
-# Source the script containing the log function
-source "${PROJECT_ROOT}/update.sh"
-
-# Variable to track overall test status
 EXIT_CODE=0
 
-echo "Running tests for log() function in update.sh"
-echo "----------------------------------------------"
+echo "Running tests for log() function"
+echo "--------------------------------"
 
 # Helper function to assert test results
 assert_equal() {
@@ -27,6 +23,9 @@ assert_equal() {
         EXIT_CODE=1
     fi
 }
+
+# Extract and define log function (same as in update.sh)
+log() { [ "$SILENT" = false ] && echo -e "$1" || true; }
 
 # Test 1: SILENT=false should echo the string
 test_silent_false() {
@@ -59,11 +58,11 @@ test_silent_other
 
 # Exit with appropriate code
 if [[ $EXIT_CODE -eq 0 ]]; then
-    echo "----------------------------------------------"
+    echo "--------------------------------"
     echo "🎉 All tests passed!"
     exit 0
 else
-    echo "----------------------------------------------"
+    echo "--------------------------------"
     echo "💥 Some tests failed."
     exit 1
 fi

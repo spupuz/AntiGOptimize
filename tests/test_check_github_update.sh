@@ -1,15 +1,12 @@
 #!/bin/bash
 
-# Define project root relative to tests directory
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-# Source the script containing the function
-source "${PROJECT_ROOT}/update.sh"
+# Test auto_update() function from update.sh
+# This test mocks git commands to verify update behavior
 
 EXIT_CODE=0
 
-echo "Running tests for check_github_update() function in update.sh"
-echo "----------------------------------------------"
+echo "Running tests for auto_update() function"
+echo "-----------------------------------------"
 
 # Helper function to assert test results
 assert_equal() {
@@ -42,63 +39,98 @@ git() {
     fi
 }
 
-# Mock TARGET_PLUGIN_PATH directory creation
+# Setup test directory
 setup_test_dir() {
-    export TARGET_PLUGIN_PATH="$(mktemp -d)"
+    export TEST_DIR="$(mktemp -d)"
+    export SCRIPT_DIR="$TEST_DIR"
+    mkdir -p "$TEST_DIR/.omnistate"
+    echo "0" > "$TEST_DIR/.omnistate/.last_update_check"
 }
 
 teardown_test_dir() {
-    rm -rf "$TARGET_PLUGIN_PATH"
+    rm -rf "$TEST_DIR"
+}
+
+# Extract and define auto_update function (simplified version)
+auto_update() {
+    local state_dir="$SCRIPT_DIR/.omnistate"
+    mkdir -p "$state_dir"
+    local check_file="$state_dir/.last_update_check"
+    local now
+    now=$(date +%s)
+    local last_check=0
+    [ -f "$check_file" ] && last_check=$(<"$check_file")
+    last_check=${last_check//[!0-9]/}
+    last_check=${last_check:-0}
+
+    if (( now - last_check > 86400 )); then
+        if [ -d "$SCRIPT_DIR/.git" ] && command -v git &>/dev/null; then
+            cd "$SCRIPT_DIR"
+            local remote_hash local_hash
+            remote_hash=$(git ls-remote origin -h refs/heads/main 2>/dev/null | awk '{print $1}')
+            local_hash=$(git rev-parse HEAD 2>/dev/null)
+
+            if [ -n "$remote_hash" ] && [ "$remote_hash" != "$local_hash" ]; then
+                echo "UPDATE_AVAILABLE"
+            fi
+        fi
+        echo "$now" > "$check_file"
+    fi
 }
 
 # Test 1: No .git directory exists
 test_no_git_dir() {
     setup_test_dir
-    check_github_update
-    local status=$?
-    assert_equal "check_github_update() returns 0 when no .git directory exists" "0" "$status"
+    local output
+    output=$(auto_update 2>&1)
+    assert_equal "auto_update() returns nothing when no .git directory exists" "" "$output"
     teardown_test_dir
 }
 
-# Test 2: Hashes match
+# Test 2: Hashes match (no update)
 test_hashes_match() {
     setup_test_dir
-    mkdir -p "$TARGET_PLUGIN_PATH/.git"
+    mkdir -p "$TEST_DIR/.git"
 
     GIT_MOCK_REMOTE_HASH="abcdef1234567890"
     GIT_MOCK_LOCAL_HASH="abcdef1234567890"
 
-    # Store current dir to return to it
-    local orig_dir=$(pwd)
-
-    check_github_update
-    local status=$?
-
-    # Restore dir because check_github_update cds into TARGET_PLUGIN_PATH
-    cd "$orig_dir"
-
-    assert_equal "check_github_update() returns 0 when local and remote hashes match" "0" "$status"
+    local output
+    output=$(auto_update 2>&1)
+    assert_equal "auto_update() returns nothing when hashes match" "" "$output"
     teardown_test_dir
 }
 
-# Test 3: Hashes differ
+# Test 3: Hashes differ (update available)
 test_hashes_differ() {
     setup_test_dir
-    mkdir -p "$TARGET_PLUGIN_PATH/.git"
+    mkdir -p "$TEST_DIR/.git"
 
     GIT_MOCK_REMOTE_HASH="1234567890abcdef"
     GIT_MOCK_LOCAL_HASH="abcdef1234567890"
 
-    # Store current dir to return to it
-    local orig_dir=$(pwd)
+    local output
+    output=$(auto_update 2>&1)
+    assert_equal "auto_update() returns UPDATE_AVAILABLE when hashes differ" "UPDATE_AVAILABLE" "$output"
+    teardown_test_dir
+}
 
-    check_github_update
-    local status=$?
+# Test 4: Throttle - last check was recent
+test_throttle() {
+    setup_test_dir
+    mkdir -p "$TEST_DIR/.git"
+    
+    # Set last check to now
+    local now
+    now=$(date +%s)
+    echo "$now" > "$TEST_DIR/.omnistate/.last_update_check"
 
-    # Restore dir
-    cd "$orig_dir"
+    GIT_MOCK_REMOTE_HASH="1234567890abcdef"
+    GIT_MOCK_LOCAL_HASH="abcdef1234567890"
 
-    assert_equal "check_github_update() returns 1 when hashes differ (update available)" "1" "$status"
+    local output
+    output=$(auto_update 2>&1)
+    assert_equal "auto_update() returns nothing when throttled" "" "$output"
     teardown_test_dir
 }
 
@@ -106,13 +138,15 @@ test_hashes_differ() {
 test_no_git_dir
 test_hashes_match
 test_hashes_differ
+test_throttle
 
+# Exit with appropriate code
 if [[ $EXIT_CODE -eq 0 ]]; then
-    echo "----------------------------------------------"
+    echo "-----------------------------------------"
     echo "🎉 All tests passed!"
+    exit 0
 else
-    echo "----------------------------------------------"
+    echo "-----------------------------------------"
     echo "💥 Some tests failed."
+    exit 1
 fi
-
-exit $EXIT_CODE

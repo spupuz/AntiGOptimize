@@ -1,4 +1,4 @@
-# OmniState Update & Sync Script (v1.4.0)
+# OmniState Update & Sync Script
 # Universal installer for opencode, Antigravity, Kilocode, and any AI coding tool
 # Auto-detects installed platforms and syncs skills to all of them
 
@@ -53,6 +53,12 @@ function Get-SkillDirs($platform) {
 }
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+function Inject-Version($file, $version) {
+    if (Test-Path $file) {
+        (Get-Content $file -Raw) -replace '\{\{VERSION\}\}', $version | Set-Content $file -Encoding UTF8
+    }
+}
+
 function Sync-ToProject($target) {
     if (!(Test-Path $target)) { return }
 
@@ -88,6 +94,21 @@ function Sync-ToProject($target) {
             if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
             Copy-Item -Path "$tplSource\*" -Destination $dest -Force
         }
+        # Inject version into templates
+        foreach ($dir in @(".agents", ".agent", ".opencode")) {
+            $configFile = Join-Path $target "$dir\templates\omnistate.config.json"
+            $dashboardFile = Join-Path $target "$dir\templates\dashboard.html"
+            if (Test-Path $configFile) { Inject-Version $configFile $version }
+            if (Test-Path $dashboardFile) { Inject-Version $dashboardFile $version }
+        }
+    }
+
+    # Copy omnistate.config.json to project root if not present
+    $rootConfig = Join-Path $target "omnistate.config.json"
+    $tplConfig = Join-Path $scriptDir "dist\templates\omnistate.config.json"
+    if (!(Test-Path $rootConfig) -and (Test-Path $tplConfig)) {
+        Copy-Item -Path $tplConfig -Destination $rootConfig -Force
+        Inject-Version $rootConfig $version
     }
 
     $opencodeConfig = Join-Path $target "opencode.json"
