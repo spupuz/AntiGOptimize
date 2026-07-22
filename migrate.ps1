@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 $scriptDir = $PSScriptRoot
 $version = if (Test-Path (Join-Path $scriptDir "VERSION.txt")) {
     (Get-Content (Join-Path $scriptDir "VERSION.txt") -Raw).Trim()
-} else { "1.4.0" }
+} else { "1.5.0" }
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 function Write-Log($msg, $color = "White") { if (!$Silent) { Write-Host $msg -ForegroundColor $color } }

@@ -1,4 +1,4 @@
-# OmniState v1.4.0
+# OmniState v1.5.0
 
 **Universal Persistent Memory** for any AI coding tool.
 Works with opencode, Antigravity, Kilocode, Roo Code, Claude Code, and more.
@@ -45,10 +45,12 @@ If auto-detection doesn't work, add to your `opencode.json`:
 
 ## Upgrade from v1.2.x or earlier
 
-If you have an existing OmniState installation from v1.2.x or earlier, follow these steps to upgrade to v1.4.0 (universal version).
+If you have an existing OmniState installation from v1.2.x or earlier, follow these steps to upgrade to v1.5.0 (universal version).
 
-### What Changed in v1.4.0
+### What Changed in v1.5.0
 
+- **Platform-specific installation**: Skills installed in correct format per platform
+- **Smart detection**: Detects which platform your project uses
 - **Config renamed**: `antigravity.config.json` → `omnistate.config.json`
 - **Schema updated**: Removed `compression_level`, added `project_name`, model fields now empty
 - **Universal**: Works with all AI coding tools, not just Antigravity
@@ -115,6 +117,49 @@ After upgrading, check that:
 3. **Save**: Run `/snapshot-session` at the end to persist state
 4. **View**: Open `omnistate-dashboard.html` in a browser
 
+## Platform-Specific Installation
+
+OmniState automatically detects which AI coding tool your project uses and installs skills in the correct format:
+
+### How It Works
+
+```bash
+# Sync to a project
+bash update.sh --sync /path/to/your/project
+```
+
+The script will:
+1. Detect which platform your project uses (from `opencode.json`, `.kilo/`, `.agents/`, etc.)
+2. Install skills in the correct format for that platform
+3. Also install globally to detected platforms
+
+### Skill Formats by Platform
+
+| Platform | Format | Example |
+|----------|--------|---------|
+| **opencode** | Subdirectory + `SKILL.md` | `.opencode/skills/start-session/SKILL.md` |
+| **Claude Code** | Subdirectory + `SKILL.md` | `.agents/skills/start-session/SKILL.md` |
+| **Antigravity** | Flat `.md` files | `.agents/workflows/start-session.md` |
+| **Kilocode** | Flat `.md` files | `.kilo/commands/start-session.md` |
+| **Roo Code** | Flat `.md` files | `.roo/commands/start-session.md` |
+
+### Mixed Projects
+
+If your project uses multiple platforms, skills are installed in all relevant formats:
+
+```bash
+# Example: opencode + kilocode project
+mkdir my-project && cd my-project
+echo '{}' > opencode.json
+mkdir .kilo
+
+bash update.sh --sync .
+
+# Result:
+# .opencode/skills/start-session/SKILL.md (opencode format)
+# .kilo/commands/start-session.md (kilocode format)
+```
+
 ## Platform Support
 
 | Platform | Auto-detected | Skills path |
@@ -162,7 +207,14 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 
 ## Changelog
 
-### v1.4.0 (current)
+### v1.5.0 (current)
+- **Platform-specific installation**: Skills installed in correct format per platform
+- **Smart detection**: Detects which platform your project uses
+- **opencode/Claude Code**: Subdirectory + `SKILL.md` format
+- **Antigravity/Kilocode/Roo**: Flat `.md` workflow format
+- **Mixed projects**: Supports multiple platforms simultaneously
+
+### v1.4.0
 - **Migration scripts**: Auto-migrate `antigravity.config.json` → `omnistate.config.json`
 - **Safe backups**: Old configs backed up to `.omnistate/backups/` before migration
 - **Git safety**: Old config files added to `.gitignore` automatically

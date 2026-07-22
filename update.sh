@@ -7,7 +7,7 @@ set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VERSION=$(cat "$SCRIPT_DIR/VERSION.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.4.0")
+VERSION=$(cat "$SCRIPT_DIR/VERSION.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.5.0")
 PLUGIN_NAME="omnistate"
 REPO_URL="https://github.com/spupuz/OmniState.git"
 

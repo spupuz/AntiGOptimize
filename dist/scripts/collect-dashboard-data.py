@@ -115,7 +115,7 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     cfg = load_json(config_file)
     data = {
         "projectName": project_name,
-        "version": cfg.get("omnistate_version", "1.4.0"),
+        "version": cfg.get("omnistate_version", "1.5.0"),
         "activeTasks": active_tasks,
         "totalTasks": total_tasks + archived_tasks,
         "archivedTasks": archived_tasks,
