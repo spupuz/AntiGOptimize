@@ -1,4 +1,4 @@
-# OmniState Update & Sync Script (v1.3.0)
+# OmniState Update & Sync Script (v1.4.0)
 # Universal installer for opencode, Antigravity, Kilocode, and any AI coding tool
 # Auto-detects installed platforms and syncs skills to all of them
 
@@ -16,12 +16,12 @@ $ErrorActionPreference = "Stop"
 $scriptDir = $PSScriptRoot
 $version = if (Test-Path (Join-Path $scriptDir "VERSION.txt")) {
     (Get-Content (Join-Path $scriptDir "VERSION.txt") -Raw).Trim()
-} else { "1.3.0" }
+} else { "1.4.0" }
 $pluginName = "omnistate"
 $repoUrl = "https://github.com/spupuz/OmniState.git"
 
 $memoryFiles = @(
-    "omnistate.config.json", "project-summary.md", "tasks-history.json",
+    "omnistate.config.json", "antigravity.config.json", "project-summary.md", "tasks-history.json",
     "tasks-archive.json", "AGENTS.md", "AI_POLICY.md", "CONTEXT.md",
     "omnistate-dashboard.html", "/omnistate-dashboard.html", "chunks/"
 )
@@ -55,6 +55,13 @@ function Get-SkillDirs($platform) {
 # ── Helpers ────────────────────────────────────────────────────────────────────
 function Sync-ToProject($target) {
     if (!(Test-Path $target)) { return }
+
+    # Migrate legacy config if present
+    $migrateScript = Join-Path $scriptDir "migrate.ps1"
+    $legacyConfig = Join-Path $target "antigravity.config.json"
+    if ((Test-Path $migrateScript) -and (Test-Path $legacyConfig)) {
+        & $migrateScript -Target $target -Silent
+    }
 
     Write-Log "Syncing OmniState to $target ..." "Cyan"
 

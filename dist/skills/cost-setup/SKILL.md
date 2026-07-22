@@ -22,6 +22,8 @@ Locate the OmniState installation by checking these paths in order:
 
 If found, run the update script to sync: `bash <path>/update.sh --auto .`
 
+**Legacy Migration:** If `antigravity.config.json` exists in the project, the update script will automatically migrate it to `omnistate.config.json` with schema updates. Backups are stored in `.omnistate/backups/`.
+
 ### 2. Create Memory Files
 Create these files in the project root if they don't exist:
 
@@ -41,6 +43,7 @@ Use templates from the OmniState installation directory, or create minimal versi
 Add these to `.gitignore`:
 ```
 omnistate.config.json
+antigravity.config.json
 project-summary.md
 tasks-history.json
 tasks-archive.json

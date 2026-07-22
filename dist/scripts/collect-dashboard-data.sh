@@ -199,7 +199,7 @@ fi
 cat > "$OUTPUT_FILE" << ENDJSON
 {
     "projectName": $(python3 -c "import json; print(json.dumps('$PROJECT_NAME'))" 2>/dev/null || echo "\"$PROJECT_NAME\""),
-    "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.3.0")",
+    "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.4.0")",
     "activeTasks": $ACTIVE_TASKS,
     "totalTasks": $((TOTAL_TASKS + ARCHIVED_TASKS)),
     "archivedTasks": $ARCHIVED_TASKS,

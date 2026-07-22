@@ -1,5 +1,5 @@
 #!/bin/bash
-# OmniState Update & Sync Script (v1.3.0)
+# OmniState Update & Sync Script (v1.4.0)
 # Universal installer for opencode, Antigravity, Kilocode, and any AI coding tool
 # Auto-detects installed platforms and syncs skills to all of them
 
@@ -7,13 +7,14 @@ set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VERSION=$(cat "$SCRIPT_DIR/VERSION.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.3.0")
+VERSION=$(cat "$SCRIPT_DIR/VERSION.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.4.0")
 PLUGIN_NAME="omnistate"
 REPO_URL="https://github.com/spupuz/OmniState.git"
 
 # Memory files to protect from git
 MEMORY_FILES=(
     "omnistate.config.json"
+    "antigravity.config.json"
     "project-summary.md"
     "tasks-history.json"
     "tasks-archive.json"
@@ -96,6 +97,11 @@ err() { log "\033[0;31m$1\033[0m"; }
 sync_to_project() {
     local target="$1"
     [ ! -d "$target" ] && return
+
+    # Migrate legacy config if present
+    if [ -f "$SCRIPT_DIR/migrate.sh" ] && [ -f "$target/antigravity.config.json" ]; then
+        bash "$SCRIPT_DIR/migrate.sh" --silent "$target"
+    fi
 
     info "Syncing OmniState to $target ..."
 

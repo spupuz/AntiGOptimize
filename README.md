@@ -1,4 +1,4 @@
-# OmniState v1.3.0
+# OmniState v1.4.0
 
 **Universal Persistent Memory** for any AI coding tool.
 Works with opencode, Antigravity, Kilocode, Roo Code, Claude Code, and more.
@@ -42,6 +42,62 @@ If auto-detection doesn't work, add to your `opencode.json`:
   }
 }
 ```
+
+## Upgrade from v1.2.x or earlier
+
+If you have an existing OmniState installation from v1.2.x or earlier, follow these steps to upgrade to v1.4.0 (universal version).
+
+### What Changed in v1.4.0
+
+- **Config renamed**: `antigravity.config.json` → `omnistate.config.json`
+- **Schema updated**: Removed `compression_level`, added `project_name`, model fields now empty
+- **Universal**: Works with all AI coding tools, not just Antigravity
+
+### Automatic Migration
+
+The upgrade process automatically migrates your config:
+
+```bash
+# Linux / macOS
+cd ~/OmniState
+git pull origin main
+bash update.sh --auto /path/to/your/project
+
+# Windows
+cd ~/OmniState
+git pull origin main
+.\update.ps1 -Auto C:\path\to\your\project
+```
+
+**What happens:**
+1. `antigravity.config.json` is backed up to `.omnistate/backups/`
+2. Config is migrated to `omnistate.config.json` with updated schema
+3. Old config is added to `.gitignore` for safety
+
+### Manual Migration
+
+If automatic migration doesn't work:
+
+```bash
+# Linux / macOS
+bash migrate.sh /path/to/your/project
+
+# Windows
+.\migrate.ps1 -Target C:\path\to\your\project
+```
+
+### Verify Migration
+
+After upgrading, check that:
+- `omnistate.config.json` exists in your project root
+- `antigravity.config.json` no longer exists (or is in `.gitignore`)
+- Your model settings are correct (old Gemini defaults are now empty)
+
+### Troubleshooting
+
+- **Both configs exist**: The migration script will prompt you before overwriting
+- **Backup location**: Backups are stored in `.omnistate/backups/` (git-ignored)
+- **Manual cleanup**: If needed, manually remove `antigravity.config.json` and add it to `.gitignore`
 
 ## Usage
 
@@ -106,7 +162,13 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 
 ## Changelog
 
-### v1.3.0 (current)
+### v1.4.0 (current)
+- **Migration scripts**: Auto-migrate `antigravity.config.json` → `omnistate.config.json`
+- **Safe backups**: Old configs backed up to `.omnistate/backups/` before migration
+- **Git safety**: Old config files added to `.gitignore` automatically
+- **Idempotent migration**: Safe to run multiple times without side effects
+
+### v1.3.0
 - **Universal**: Works with any AI coding tool, not just specific platforms
 - **Auto-detect**: Installer finds all installed AI tools and syncs to all of them
 - **Auto-update**: Skills and scripts auto-update from GitHub daily
