@@ -1,4 +1,4 @@
-# OmniState v1.5.0
+# OmniState v1.5.1
 
 **Universal Persistent Memory** for any AI coding tool.
 Works with opencode, Antigravity, Kilocode, Roo Code, Claude Code, and more.
@@ -207,7 +207,10 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 
 ## Changelog
 
-### v1.5.0 (current)
+### v1.5.1 (current)
+- **Support section**: Added Buy Me a Coffee link
+
+### v1.5.0
 - **Platform-specific installation**: Skills installed in correct format per platform
 - **Smart detection**: Detects which platform your project uses
 - **opencode/Claude Code**: Subdirectory + `SKILL.md` format
@@ -244,6 +247,14 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 - Background sync and auto-update
 - Task auto-archiving
 - Dashboard auto-refresh
+
+---
+
+## Support
+
+If OmniState saves you time and tokens, consider buying me a coffee:
+
+[![Buy me a coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/spupuz)
 
 ---
 
