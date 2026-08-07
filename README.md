@@ -252,9 +252,11 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 
 ## Support
 
-If OmniState saves you time and tokens, consider buying me a coffee:
+If OmniState is saving you time, tokens, and context-window headaches every single day, consider fueling the next version with a coffee. Every cup helps keep development going, features shipping, and your AI sessions lean and fast:
 
-[![Buy me a coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/spupuz)
+<p align="center">
+<a href="https://www.buymeacoffee.com/spupuz"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="160" /></a>
+</p>
 
 ---
 
