@@ -19,16 +19,10 @@ json_val() {
     local file="$1" key="$2" default="$3"
     if [ -f "$file" ]; then
         local v
-        v=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open('$file'))
-    keys = '$key'.split('.')
-    for k in keys:
-        d = d[k]
-    print(d)
-except: print('$default')
-" 2>/dev/null) || v="$default"
+        v=$(jq -r ".$key // \"$default\"" "$file" 2>/dev/null) || v="$default"
+        if [ "$v" = "null" ]; then
+            v="$default"
+        fi
         echo "$v"
     else
         echo "$default"
@@ -53,38 +47,14 @@ TOTAL_TASKS=0
 DONE_TASKS=0
 
 if [ -f "$TASKS_HISTORY" ]; then
-    TOTAL_TASKS=$(python3 -c "
-import json
-try:
-    d = json.load(open('$TASKS_HISTORY'))
-    print(len(d.get('tasks', [])))
-except: print(0)
-" 2>/dev/null || echo "0")
-    ACTIVE_TASKS=$(python3 -c "
-import json
-try:
-    d = json.load(open('$TASKS_HISTORY'))
-    print(sum(1 for t in d.get('tasks', []) if t.get('status') == 'todo'))
-except: print(0)
-" 2>/dev/null || echo "0")
-    DONE_TASKS=$(python3 -c "
-import json
-try:
-    d = json.load(open('$TASKS_HISTORY'))
-    print(sum(1 for t in d.get('tasks', []) if t.get('status') == 'done'))
-except: print(0)
-" 2>/dev/null || echo "0")
+    TOTAL_TASKS=$(jq '.tasks | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
+    ACTIVE_TASKS=$(jq '[.tasks[] | select(.status == "todo")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
+    DONE_TASKS=$(jq '[.tasks[] | select(.status == "done")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
 fi
 
 ARCHIVED_TASKS=0
 if [ -f "$TASKS_ARCHIVE" ]; then
-    ARCHIVED_TASKS=$(python3 -c "
-import json
-try:
-    d = json.load(open('$TASKS_ARCHIVE'))
-    print(len(d.get('tasks', [])))
-except: print(0)
-" 2>/dev/null || echo "0")
+    ARCHIVED_TASKS=$(jq '.tasks | length' "$TASKS_ARCHIVE" 2>/dev/null || echo "0")
 fi
 
 # --- 3. Snapshots (count chunks) ---
@@ -161,44 +131,53 @@ COST_TOTAL="0.00"
 COST_BY_MODEL="{}"
 if [ -f "$OMNI_COST" ]; then
     COST_TOTAL=$(json_val "$OMNI_COST" "total_cost" "0.00")
-    COST_BY_MODEL=$(python3 -c "
-import json
-try:
-    d = json.load(open('$OMNI_COST'))
-    print(json.dumps(d.get('by_model', {})))
-except: print('{}')
-" 2>/dev/null || echo "{}")
+    COST_BY_MODEL=$(jq -c '.by_model // {}' "$OMNI_COST" 2>/dev/null || echo "{}")
 fi
 
 # --- 8. Architecture (from project-summary.md modules) ---
 ARCHITECTURE="[]"
 if [ -f "$PROJECT_SUMMARY" ]; then
-    ARCHITECTURE=$(python3 -c "
-import re
-lines = open('$PROJECT_SUMMARY').readlines()
-modules = []
-in_modules = False
-for line in lines:
-    if 'Modules' in line or 'modules' in line:
-        in_modules = True
-        continue
-    if in_modules:
-        m = re.match(r'\s*-\s*\x60([^\x60]+)\x60\s*:\s*(.*)', line.strip())
-        if m:
-            modules.append({'role': m.group(1).split('/')[-1][:20], 'text': m.group(2).strip()[:80]})
-        elif line.strip() and not line.startswith(' ') and not line.startswith('-'):
-            break
-if not modules:
-    modules = [{'role': 'Project', 'text': 'See project-summary.md'}]
-import json
-print(json.dumps(modules[:6]))
-" 2>/dev/null || echo "[{\"role\":\"Project\",\"text\":\"See project-summary.md\"}]")
+    ARCHITECTURE=$(awk '
+    BEGIN { in_modules = 0; count = 0; printf "[" }
+    /[Mm]odules/ { in_modules = 1; next }
+    in_modules {
+        if ($0 ~ /^[ \t]*-[ \t]*`[^`]+`[ \t]*:/) {
+            if (count > 0) printf ","
+            role_start = index($0, "`") + 1
+            role_end = index(substr($0, role_start), "`") - 1
+            role = substr($0, role_start, role_end)
+
+            colon_idx = index(substr($0, role_start + role_end), ":")
+            text_start = role_start + role_end + colon_idx
+            text = substr($0, text_start)
+            sub(/^[ \t]+/, "", text)
+
+            n = split(role, parts, "/")
+            role = parts[n]
+
+            role = substr(role, 1, 20)
+            text = substr(text, 1, 80)
+
+            gsub(/"/, "\\\"", role)
+            gsub(/"/, "\\\"", text)
+
+            printf "{\"role\":\"%s\",\"text\":\"%s\"}", role, text
+            count++
+            if (count >= 6) in_modules = 0
+        } else if ($0 ~ /^[^ \t-]/ && length($0) > 0) {
+            in_modules = 0
+        }
+    }
+    END {
+        if (count == 0) printf "{\"role\":\"Project\",\"text\":\"See project-summary.md\"}"
+        printf "]\n"
+    }' "$PROJECT_SUMMARY" 2>/dev/null || echo "[{\"role\":\"Project\",\"text\":\"See project-summary.md\"}]")
 fi
 
 # --- Build output JSON ---
 cat > "$OUTPUT_FILE" << ENDJSON
 {
-    "projectName": $(python3 -c "import json; print(json.dumps('$PROJECT_NAME'))" 2>/dev/null || echo "\"$PROJECT_NAME\""),
+    "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
     "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")",
     "activeTasks": $ACTIVE_TASKS,
     "totalTasks": $((TOTAL_TASKS + ARCHIVED_TASKS)),
