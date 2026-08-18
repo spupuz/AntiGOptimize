@@ -122,14 +122,14 @@
                     <span class="text-xs text-slate-500 font-mono">Cumulative Token Savings (k)</span>
                 </div>
                 <div class="h-80 w-full">
-                    <canvas id="savingsChart"></canvas>
+                    <canvas id="savingsChart" role="img" aria-label="Optimization Curve Chart"></canvas>
                 </div>
             </div>
 
             <!-- Right: Timeline -->
             <div class="glass p-10 flex flex-col">
                 <h2 class="text-2xl font-bold mb-10">Memory Chunks</h2>
-                <div class="relative ml-6 border-l border-slate-800 pl-8 space-y-12 overflow-y-auto max-h-[420px] pr-4 custom-scroll" id="timeline-container">
+                <div class="relative ml-6 border-l border-slate-800 pl-8 space-y-12 overflow-y-auto max-h-[420px] pr-4 custom-scroll focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg" id="timeline-container" tabindex="0" role="region" aria-label="Memory Chunks Timeline">
                     <!-- Timeline items will be injected here -->
                 </div>
             </div>
