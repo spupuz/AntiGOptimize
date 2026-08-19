@@ -1,0 +1,3 @@
+## 2024-08-19 - Progressbar Accessibility Update
+**Learning:** When using visual elements like filled divs to represent progress, screen readers have no context about what is being displayed. Providing `role="progressbar"`, alongside standard properties like `aria-valuemin`, `aria-valuemax`, and updating `aria-valuenow` dynamically with Javascript ensures that assistive technologies can interpret and communicate dynamic data as its changes.
+**Action:** When creating visual progress bars, always attach ARIA progressbar roles to the wrapper container and use Javascript to dynamically sync `aria-valuenow` to the same calculated value that controls visual width.
