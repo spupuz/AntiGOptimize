@@ -47,9 +47,7 @@ TOTAL_TASKS=0
 DONE_TASKS=0
 
 if [ -f "$TASKS_HISTORY" ]; then
-    TOTAL_TASKS=$(jq '.tasks | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
-    ACTIVE_TASKS=$(jq '[.tasks[] | select(.status == "todo")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
-    DONE_TASKS=$(jq '[.tasks[] | select(.status == "done")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
+    read TOTAL_TASKS ACTIVE_TASKS DONE_TASKS < <(jq -r '(.tasks | length) as $t | ([.tasks[] | select(.status == "todo")] | length) as $a | ([.tasks[] | select(.status == "done")] | length) as $d | "\($t) \($a) \($d)"' "$TASKS_HISTORY" 2>/dev/null || echo "0 0 0")
 fi
 
 ARCHIVED_TASKS=0
