@@ -1,0 +1,3 @@
+## 2026-08-20 - [Avoid Bash N+1 Pattern in File IO and Subprocesses]
+**Learning:** Bash loops executing subprocesses (`wc -w`, `jq`) for each item in a collection suffer from significant N+1 process spawning overhead. Batching `jq` calls into a single query mapping to multiple variables (using `read ... < <(jq ...)`) and batching file I/O operations (like `cat *.md | wc -w` instead of a loop) drastically improves execution times, transforming O(N) subprocess overhead into O(1).
+**Action:** Always seek to batch file processing (`cat`, `awk`, `wc`) and JSON parsing (`jq`) outside of loops in Bash scripts when multiple files or data points need processing.
