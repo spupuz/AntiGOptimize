@@ -131,7 +131,9 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
         "chartData": chart_data,
     }
 
-    Path(output_file).write_text(json.dumps(data, indent=2))
+    # Escape < to \u003c to prevent </script> breakout when injected into HTML
+    json_str = json.dumps(data, indent=2).replace("<", "\\u003c")
+    Path(output_file).write_text(json_str)
     print(f"Dashboard data collected → {output_file}")
     print(f"  Project: {project_name}")
     print(f"  Active: {active_tasks} | Archived: {archived_tasks} | Snapshots: {snapshots}")

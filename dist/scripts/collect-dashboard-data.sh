@@ -175,6 +175,7 @@ if [ -f "$PROJECT_SUMMARY" ]; then
 fi
 
 # --- Build output JSON ---
+# Escape < to \u003c to prevent </script> breakout when injected into HTML
 cat > "$OUTPUT_FILE" << ENDJSON
 {
     "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
@@ -194,6 +195,9 @@ cat > "$OUTPUT_FILE" << ENDJSON
     "chartData": $CHART_DATA
 }
 ENDJSON
+
+# Apply escaping in-place to avoid temporary files
+sed -i 's/</\\u003c/g' "$OUTPUT_FILE"
 
 echo "Dashboard data collected → $OUTPUT_FILE"
 echo "  Project: $PROJECT_NAME"
