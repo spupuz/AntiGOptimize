@@ -1,0 +1,3 @@
+## 2026-08-21 - Batched Bash Subprocesses
+**Learning:** I found severe N+1 process spawning bottlenecks in `dist/scripts/collect-dashboard-data.sh`. Multiple `jq` commands were being run against the same JSON file consecutively, and `wc -w` was being invoked inside a loop for every Markdown file. These patterns heavily degrade performance in bash scripts.
+**Action:** Always batch processing outside of loops. For `jq`, consolidate multiple property extractions into a single query using variable assignment and process substitution (e.g., `read A B < <(jq ...)`); for file operations like word counts, use shell globbing to stream multiple files at once to the utility (`cat dir/*.md | wc -w`).

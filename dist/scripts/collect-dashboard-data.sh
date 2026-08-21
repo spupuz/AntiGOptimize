@@ -47,9 +47,13 @@ TOTAL_TASKS=0
 DONE_TASKS=0
 
 if [ -f "$TASKS_HISTORY" ]; then
-    TOTAL_TASKS=$(jq '.tasks | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
-    ACTIVE_TASKS=$(jq '[.tasks[] | select(.status == "todo")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
-    DONE_TASKS=$(jq '[.tasks[] | select(.status == "done")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
+    # Bolt Optimization: Batched jq query to avoid N+1 process spawn overhead
+    read -r TOTAL_TASKS ACTIVE_TASKS DONE_TASKS < <(jq -r '
+        (.tasks | length) as $total |
+        ([.tasks[] | select(.status == "todo")] | length) as $active |
+        ([.tasks[] | select(.status == "done")] | length) as $done |
+        "\($total) \($active) \($done)"
+    ' "$TASKS_HISTORY" 2>/dev/null || echo "0 0 0")
 fi
 
 ARCHIVED_TASKS=0
@@ -77,11 +81,9 @@ fi
 TOTAL_WORDS=0
 # Count words in chunks
 if [ -d "$CHUNKS_DIR" ]; then
-    for f in "$CHUNKS_DIR"/*.md; do
-        [ -f "$f" ] || continue
-        WORDS=$(wc -w < "$f" 2>/dev/null || echo "0")
-        TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
-    done
+    # Bolt Optimization: Batched wc -w execution to avoid N+1 process spawn overhead in loop
+    WORDS=$(cat "$CHUNKS_DIR"/*.md 2>/dev/null | wc -w || echo "0")
+    TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
 fi
 # Count words in archived tasks
 if [ -f "$TASKS_ARCHIVE" ]; then
