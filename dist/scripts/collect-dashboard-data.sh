@@ -175,7 +175,7 @@ if [ -f "$PROJECT_SUMMARY" ]; then
 fi
 
 # --- Build output JSON ---
-cat > "$OUTPUT_FILE" << ENDJSON
+JSON_OUT=$(cat << ENDJSON
 {
     "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
     "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")",
@@ -194,6 +194,10 @@ cat > "$OUTPUT_FILE" << ENDJSON
     "chartData": $CHART_DATA
 }
 ENDJSON
+)
+
+# SECURITY: Escape `<` to prevent XSS via `</script>` breakouts
+echo "${JSON_OUT//</\\u003c}" > "$OUTPUT_FILE"
 
 echo "Dashboard data collected → $OUTPUT_FILE"
 echo "  Project: $PROJECT_NAME"
