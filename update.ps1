@@ -134,9 +134,9 @@ function Install-ForPlatform($platform, $target) {
         # Formato skill: copia sottodirectory
         Copy-Item -Path "$fullSource\*" -Destination $fullDest -Recurse -Force
     } else {
-        # Formato workflow: copia solo file .md piatti
-        Get-ChildItem -Path $fullSource -Filter "*.md" -File | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination $fullDest -Force
+        # Formato workflow: copia solo file .md piatti in batch
+        if (Test-Path "$fullSource\*.md") {
+            Copy-Item -Path "$fullSource\*.md" -Destination $fullDest -Force
         }
     }
 }
@@ -256,9 +256,9 @@ function Install-Global {
                         # Formato skill: copia sottodirectory
                         Copy-Item -Path "$fullSource\*" -Destination $dir -Recurse -Force
                     } else {
-                        # Formato workflow: copia solo file .md piatti
-                        Get-ChildItem -Path $fullSource -Filter "*.md" -File | ForEach-Object {
-                            Copy-Item -Path $_.FullName -Destination $dir -Force
+                        # Formato workflow: copia solo file .md piatti in batch
+                        if (Test-Path "$fullSource\*.md") {
+                            Copy-Item -Path "$fullSource\*.md" -Destination $dir -Force
                         }
                     }
                     Write-Log "  -> $dir" "Green"

@@ -1,0 +1,3 @@
+## 2025-05-18 - Batching File Copies to Prevent N+1 Overhead
+**Learning:** Sequential file copying in a shell or PowerShell loop (e.g. `for file in *.md; do cp $file dest/`) adds massive overhead by spawning a new process (or calling PowerShell's underlying cmdlet processing pipeline) for every file, creating an N+1 performance bottleneck.
+**Action:** Always use shell globbing array expansion (`cp "${md_files[@]}" dest/`) or glob path parameters (`Copy-Item -Path "source\*.md" -Destination dest`) to batch file I/O operations into a single execution.

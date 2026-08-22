@@ -189,12 +189,11 @@ install_for_platform() {
             # Formato skill: copia sottodirectory con SKILL.md
             cp -a "$SCRIPT_DIR/$source_dir/"* "$full_dest/"
         else
-            # Formato workflow: copia solo file .md piatti
-            for file in "$SCRIPT_DIR/$source_dir/"*.md; do
-                if [ -f "$file" ]; then
-                    cp "$file" "$full_dest/"
-                fi
-            done
+            # Formato workflow: copia solo file .md piatti in batch
+            local md_files=("$SCRIPT_DIR/$source_dir/"*.md)
+            if [ -e "${md_files[0]}" ]; then
+                cp "${md_files[@]}" "$full_dest/"
+            fi
         fi
     fi
 }
@@ -330,12 +329,11 @@ install_global() {
                         # Formato skill: copia sottodirectory
                         cp -a "$SCRIPT_DIR/$source_dir/"* "$dir/"
                     else
-                        # Formato workflow: copia solo file .md piatti
-                        for file in "$SCRIPT_DIR/$source_dir/"*.md; do
-                            if [ -f "$file" ]; then
-                                cp "$file" "$dir/"
-                            fi
-                        done
+                        # Formato workflow: copia solo file .md piatti in batch
+                        local md_files=("$SCRIPT_DIR/$source_dir/"*.md)
+                        if [ -e "${md_files[0]}" ]; then
+                            cp "${md_files[@]}" "$dir/"
+                        fi
                     fi
                     ok "  -> $dir"
                 fi
