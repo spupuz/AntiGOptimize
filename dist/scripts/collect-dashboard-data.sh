@@ -47,9 +47,8 @@ TOTAL_TASKS=0
 DONE_TASKS=0
 
 if [ -f "$TASKS_HISTORY" ]; then
-    TOTAL_TASKS=$(jq '.tasks | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
-    ACTIVE_TASKS=$(jq '[.tasks[] | select(.status == "todo")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
-    DONE_TASKS=$(jq '[.tasks[] | select(.status == "done")] | length' "$TASKS_HISTORY" 2>/dev/null || echo "0")
+    # Optimization: Batch jq queries into a single execution to prevent N+1 process spawning overhead
+    read -r TOTAL_TASKS ACTIVE_TASKS DONE_TASKS < <(jq -r '[(.tasks | length), ([(.tasks[]? | select(.status == "todo"))] | length), ([(.tasks[]? | select(.status == "done"))] | length)] | @tsv' "$TASKS_HISTORY" 2>/dev/null || echo "0 0 0")
 fi
 
 ARCHIVED_TASKS=0
@@ -77,11 +76,9 @@ fi
 TOTAL_WORDS=0
 # Count words in chunks
 if [ -d "$CHUNKS_DIR" ]; then
-    for f in "$CHUNKS_DIR"/*.md; do
-        [ -f "$f" ] || continue
-        WORDS=$(wc -w < "$f" 2>/dev/null || echo "0")
-        TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
-    done
+    # Optimization: Batch word counting via find and xargs instead of a loop to avoid N+1 overhead and E2BIG limits
+    WORDS=$(find "$CHUNKS_DIR" -maxdepth 1 -name "*.md" -type f -print0 | xargs -r -0 cat 2>/dev/null | wc -w || echo "0")
+    TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
 fi
 # Count words in archived tasks
 if [ -f "$TASKS_ARCHIVE" ]; then
