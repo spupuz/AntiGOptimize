@@ -1,0 +1,3 @@
+## 2024-11-13 - Visual Progress Bar Accessibility
+**Learning:** When using structural elements (like nested div tags) to create visual progress bars, visually-impaired users rely on screen readers to understand the current progress, which is completely lost if semantic meaning is missing.
+**Action:** Always wrap visual progress elements in a container with `role="progressbar"`, `aria-valuemin`, `aria-valuemax`, and a descriptive `aria-label`. The `aria-valuenow` must be kept in sync dynamically via JavaScript along with the visual styles (e.g., width %) to ensure state parity.
