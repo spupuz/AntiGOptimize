@@ -169,16 +169,45 @@
             } catch (e) { console.error("Data parse error", e); }
 
             if (!hasRealData) {
-                document.body.innerHTML = `
-                    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Inter,sans-serif;">
-                        <div style="text-align:center;padding:3rem;">
-                            <h1 style="font-size:2rem;font-weight:700;color:#f1f5f9;margin-bottom:1rem;">No Dashboard Data</h1>
-                            <p style="color:#94a3b8;max-width:400px;margin:0 auto;">
-                                Run <code style="background:#1e293b;padding:0.25rem 0.5rem;border-radius:0.375rem;color:#60a5fa;">/snapshot-session</code> or 
-                                <code style="background:#1e293b;padding:0.25rem 0.5rem;border-radius:0.375rem;color:#60a5fa;">/dashboard-omnistate</code> to generate real project metrics.
-                            </p>
-                        </div>
-                    </div>`;
+                document.body.textContent = '';
+                const container = document.createElement('div');
+                container.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Inter,sans-serif;';
+
+                const innerDiv = document.createElement('div');
+                innerDiv.style.cssText = 'text-align:center;padding:3rem;';
+
+                const h1 = document.createElement('h1');
+                h1.style.cssText = 'font-size:2rem;font-weight:700;color:#f1f5f9;margin-bottom:1rem;';
+                h1.textContent = 'No Dashboard Data';
+
+                const p = document.createElement('p');
+                p.style.cssText = 'color:#94a3b8;max-width:400px;margin:0 auto;line-height:1.5;';
+
+                const text1 = document.createTextNode('Run ');
+
+                const code1 = document.createElement('code');
+                code1.style.cssText = 'background:#1e293b;padding:0.25rem 0.5rem;border-radius:0.375rem;color:#60a5fa;';
+                code1.textContent = '/snapshot-session';
+
+                const text2 = document.createTextNode(' or ');
+
+                const code2 = document.createElement('code');
+                code2.style.cssText = 'background:#1e293b;padding:0.25rem 0.5rem;border-radius:0.375rem;color:#60a5fa;';
+                code2.textContent = '/dashboard-omnistate';
+
+                const text3 = document.createTextNode(' to generate real project metrics.');
+
+                p.appendChild(text1);
+                p.appendChild(code1);
+                p.appendChild(text2);
+                p.appendChild(code2);
+                p.appendChild(text3);
+
+                innerDiv.appendChild(h1);
+                innerDiv.appendChild(p);
+                container.appendChild(innerDiv);
+
+                document.body.appendChild(container);
                 return;
             }
 
