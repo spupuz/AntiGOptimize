@@ -77,11 +77,8 @@ fi
 TOTAL_WORDS=0
 # Count words in chunks
 if [ -d "$CHUNKS_DIR" ]; then
-    for f in "$CHUNKS_DIR"/*.md; do
-        [ -f "$f" ] || continue
-        WORDS=$(wc -w < "$f" 2>/dev/null || echo "0")
-        TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
-    done
+    WORDS=$(find "$CHUNKS_DIR" -maxdepth 1 -name "*.md" -type f -exec cat {} + 2>/dev/null | wc -w || echo "0")
+    TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
 fi
 # Count words in archived tasks
 if [ -f "$TASKS_ARCHIVE" ]; then

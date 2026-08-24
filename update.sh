@@ -347,7 +347,8 @@ install_global() {
     mkdir -p "$SCRIPT_DIR/.opencode/skills"
     for skill_dir in "$SCRIPT_DIR/dist/skills"/*/; do
         local skill_name
-        skill_name=$(basename "$skill_dir")
+        local skill_dir_no_slash="${skill_dir%/}"
+        skill_name="${skill_dir_no_slash##*/}"
         mkdir -p "$SCRIPT_DIR/.opencode/skills/$skill_name"
         cp -a "$skill_dir"* "$SCRIPT_DIR/.opencode/skills/$skill_name/"
     done
