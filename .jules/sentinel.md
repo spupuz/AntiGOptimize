@@ -2,3 +2,7 @@
 **Vulnerability:** Shell variables (`$PROJECT_NAME`, `$TASKS_HISTORY`, etc.) were directly interpolated into strings representing Python scripts run via `python3 -c "..."`. This allowed an attacker to execute arbitrary Python code by injecting single quotes and Python payloads into variable values (e.g. project names or filenames).
 **Learning:** Even though the scripts are invoked from a bash environment, dynamically constructing code strings in interpreted languages (Python, Node.js) using bash parameter expansion is a direct vector for command injection.
 **Prevention:** Never use string interpolation to pass dynamic data into embedded scripts. For Python, pass dynamic strings securely via `sys.argv` (e.g. `python3 -c "import sys; print(sys.argv[1])" "$VAR"`) or standard environment variables (`os.environ`). For JSON escaping specifically, utilities like `jq --arg` provide a robust alternative.
+## 2024-08-26 - Prevent XSS in HTML JSON Injection
+**Vulnerability:** XSS vulnerability when injecting JSON directly into an HTML `<script>` block.
+**Learning:** The `<` character can be interpreted by the browser, allowing `<script>` tags embedded within JSON values (such as an attacker-controlled `<script>alert(1)</script>`) to terminate the script block early and execute arbitrary code.
+**Prevention:** When injecting JSON data into HTML `<script>` tags (e.g., via `{{DATA}}` placeholders), always escape the `<` character as `\u003c` and `>` character as `\u003e` in the JSON string to prevent `</script>` from breaking out of the script block.

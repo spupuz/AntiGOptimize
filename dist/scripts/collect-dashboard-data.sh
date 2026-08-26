@@ -175,7 +175,7 @@ if [ -f "$PROJECT_SUMMARY" ]; then
 fi
 
 # --- Build output JSON ---
-cat > "$OUTPUT_FILE" << ENDJSON
+cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$OUTPUT_FILE"
 {
     "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
     "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")",
