@@ -190,11 +190,10 @@ install_for_platform() {
             cp -a "$SCRIPT_DIR/$source_dir/"* "$full_dest/"
         else
             # Formato workflow: copia solo file .md piatti
-            for file in "$SCRIPT_DIR/$source_dir/"*.md; do
-                if [ -f "$file" ]; then
-                    cp "$file" "$full_dest/"
-                fi
-            done
+            local files=("$SCRIPT_DIR/$source_dir/"*.md)
+            if [ -f "${files[0]}" ]; then
+                cp "${files[@]}" "$full_dest/"
+            fi
         fi
     fi
 }
@@ -331,11 +330,10 @@ install_global() {
                         cp -a "$SCRIPT_DIR/$source_dir/"* "$dir/"
                     else
                         # Formato workflow: copia solo file .md piatti
-                        for file in "$SCRIPT_DIR/$source_dir/"*.md; do
-                            if [ -f "$file" ]; then
-                                cp "$file" "$dir/"
-                            fi
-                        done
+                        local files=("$SCRIPT_DIR/$source_dir/"*.md)
+                        if [ -f "${files[0]}" ]; then
+                            cp "${files[@]}" "$dir/"
+                        fi
                     fi
                     ok "  -> $dir"
                 fi

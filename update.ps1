@@ -135,8 +135,8 @@ function Install-ForPlatform($platform, $target) {
         Copy-Item -Path "$fullSource\*" -Destination $fullDest -Recurse -Force
     } else {
         # Formato workflow: copia solo file .md piatti
-        Get-ChildItem -Path $fullSource -Filter "*.md" -File | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination $fullDest -Force
+        if (Test-Path "$fullSource\*.md") {
+            Copy-Item -Path "$fullSource\*.md" -Destination $fullDest -Force
         }
     }
 }
@@ -257,8 +257,8 @@ function Install-Global {
                         Copy-Item -Path "$fullSource\*" -Destination $dir -Recurse -Force
                     } else {
                         # Formato workflow: copia solo file .md piatti
-                        Get-ChildItem -Path $fullSource -Filter "*.md" -File | ForEach-Object {
-                            Copy-Item -Path $_.FullName -Destination $dir -Force
+                        if (Test-Path "$fullSource\*.md") {
+                            Copy-Item -Path "$fullSource\*.md" -Destination $dir -Force
                         }
                     }
                     Write-Log "  -> $dir" "Green"

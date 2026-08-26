@@ -1,0 +1,3 @@
+## 2026-08-26 - Bash Globbing and Error Swallowing
+**Learning:** Batching file copies in Bash using `cp *.md` without checking for file existence first leads to literal glob evaluation if no files match. Simply adding `2>/dev/null || true` is a dangerous anti-pattern as it swallows legitimate system errors (like disk full or permissions). In PowerShell, `Copy-Item` throws terminating errors if a wildcard finds no files, unlike a pipeline loop.
+**Action:** When optimizing loops into batch operations, always verify wildcard matches exist before executing the command, rather than relying on error suppression.
