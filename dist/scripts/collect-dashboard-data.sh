@@ -38,7 +38,9 @@ if [ -z "$PROJECT_NAME" ] || [ "$PROJECT_NAME" = "Unknown Project" ]; then
     PROJECT_NAME=$(json_val "$CONFIG_FILE" "project_name" "")
 fi
 if [ -z "$PROJECT_NAME" ]; then
-    PROJECT_NAME=$(basename "$(cd "$PROJECT_DIR" && pwd)")
+    tmp_dir="$(cd "$PROJECT_DIR" && pwd)"
+    # Optimization: Use native bash parameter expansion instead of spawning a subshell with 'basename'
+    PROJECT_NAME="${tmp_dir##*/}"
 fi
 
 # --- 2. Task Counts ---
@@ -66,7 +68,12 @@ if [ -d "$CHUNKS_DIR" ]; then
     while IFS= read -r chunk; do
         [ -z "$chunk" ] && continue
         DATE_STR=$(date -r "$chunk" "+%b %d" 2>/dev/null || stat -c "%y" "$chunk" 2>/dev/null | cut -d' ' -f1 | xargs -I{} date -d "{}" "+%b %d" 2>/dev/null || echo "")
-        LABEL=$(head -3 "$chunk" | grep -oP '(?<=# ).*' | head -1 || basename "$chunk" .md)
+
+        # Optimization: Use native bash parameter expansion instead of spawning a subshell with 'basename'
+        fallback_name="${chunk##*/}"
+        fallback_name="${fallback_name%.md}"
+
+        LABEL=$(head -3 "$chunk" | grep -oP '(?<=# ).*' | head -1 || echo "$fallback_name")
         CHUNK_DATES+=("$DATE_STR")
         CHUNK_LABELS+=("$LABEL")
     done < <(ls -t "$CHUNKS_DIR"/*.md 2>/dev/null | head -5)
