@@ -76,7 +76,7 @@ fi
 TOTAL_WORDS=0
 # Count words in chunks
 if [ -d "$CHUNKS_DIR" ]; then
-# Optimization: Batch word counting via find and xargs instead of a loop to avoid N+1 overhead and E2BIG limits
+    # Optimization: Batch word counting via find and xargs instead of a loop to avoid N+1 overhead and E2BIG limits
     WORDS=$(find "$CHUNKS_DIR" -maxdepth 1 -name "*.md" -type f -print0 | xargs -r -0 cat 2>/dev/null | wc -w || echo "0")
     TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
 fi
