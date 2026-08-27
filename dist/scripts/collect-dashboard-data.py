@@ -131,8 +131,8 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
         "chartData": chart_data,
     }
 
-    # SECURE: escape '<' to prevent XSS vulnerability when injected into an HTML script block
-    json_output = json.dumps(data, indent=2).replace("<", "\\u003c")
+    # SECURE: escape '<' and '>' to prevent XSS vulnerability when injected into an HTML script block
+    json_output = json.dumps(data, indent=2).replace("<", "\\u003c").replace(">", "\\u003e")
     Path(output_file).write_text(json_output)
     print(f"Dashboard data collected → {output_file}")
     print(f"  Project: {project_name}")

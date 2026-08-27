@@ -180,7 +180,7 @@ fi
 
 # --- Build output JSON ---
 # SECURE: escape '<' to prevent XSS vulnerability when injected into an HTML script block
-cat << ENDJSON | sed 's/</\\u003c/g' > "$OUTPUT_FILE"
+cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$OUTPUT_FILE"
 {
     "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
     "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")",
