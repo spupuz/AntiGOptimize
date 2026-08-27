@@ -25,7 +25,7 @@ function sync_workflows() {
     # Sync only files that are not in gitignore
     for file in "$source_dir"/*; do
         if [[ -f "$file" ]]; then
-            filename=$(basename "$file")
+            filename="${file##*/}"
             
             # Sync all files, bypassing gitignore for cross‑IDE workflow sync
             # (intentionally ignore .gitignore for workflow synchronization)
@@ -89,7 +89,7 @@ function sync_shared_config() {
     for file in "${candidates[@]}"; do
         # If the file path is not in the ignored string exactly
         if [[ "$ignored_str" != *$'\n'"$file"$'\n'* ]]; then
-            workflow_files+=("$(basename "$file")")
+            workflow_files+=("${file##*/}")
         fi
     done
     
