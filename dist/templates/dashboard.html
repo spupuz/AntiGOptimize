@@ -225,49 +225,79 @@
 
             const timelineContainer = document.getElementById('timeline-container');
             const timelineFragment = document.createDocumentFragment();
-            (data.timeline || []).forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'timeline-item relative group cursor-default';
+            const timelineData = data.timeline || [];
 
-                const pDate = document.createElement('p');
-                pDate.className = 'text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors';
-                pDate.textContent = item.date;
+            if (timelineData.length === 0) {
+                timelineContainer.classList.remove('border-l', 'pl-8', 'ml-6');
 
-                const h4Label = document.createElement('h4');
-                h4Label.className = 'text-lg font-bold text-slate-200 mt-1';
-                h4Label.textContent = item.label;
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20';
 
-                const pText = document.createElement('p');
-                pText.className = 'text-sm text-slate-400 mt-1 font-light leading-relaxed';
-                pText.textContent = item.text;
+                const emptyP = document.createElement('p');
+                emptyP.className = 'text-slate-500 text-sm';
+                emptyP.textContent = 'No memory chunks recorded yet.';
 
-                div.appendChild(pDate);
-                div.appendChild(h4Label);
-                div.appendChild(pText);
+                emptyDiv.appendChild(emptyP);
+                timelineFragment.appendChild(emptyDiv);
+            } else {
+                timelineData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'timeline-item relative group cursor-default';
 
-                timelineFragment.appendChild(div);
-            });
+                    const pDate = document.createElement('p');
+                    pDate.className = 'text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors';
+                    pDate.textContent = item.date;
+
+                    const h4Label = document.createElement('h4');
+                    h4Label.className = 'text-lg font-bold text-slate-200 mt-1';
+                    h4Label.textContent = item.label;
+
+                    const pText = document.createElement('p');
+                    pText.className = 'text-sm text-slate-400 mt-1 font-light leading-relaxed';
+                    pText.textContent = item.text;
+
+                    div.appendChild(pDate);
+                    div.appendChild(h4Label);
+                    div.appendChild(pText);
+
+                    timelineFragment.appendChild(div);
+                });
+            }
             timelineContainer.appendChild(timelineFragment);
 
             const archGrid = document.getElementById('architecture-grid');
             const archFragment = document.createDocumentFragment();
-            (data.architecture || []).forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'p-6 rounded-2xl bg-slate-900/40 border border-slate-800/50 hover:border-blue-500/30 transition-all';
+            const archData = data.architecture || [];
 
-                const pRole = document.createElement('p');
-                pRole.className = 'text-blue-400 font-black text-[10px] uppercase tracking-widest mb-2';
-                pRole.textContent = item.role;
+            if (archData.length === 0) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20 md:col-span-3';
 
-                const pText = document.createElement('p');
-                pText.className = 'text-slate-300 font-semibold text-base';
-                pText.textContent = item.text;
+                const emptyP = document.createElement('p');
+                emptyP.className = 'text-slate-500 text-sm';
+                emptyP.textContent = 'No architecture modules defined yet.';
 
-                div.appendChild(pRole);
-                div.appendChild(pText);
+                emptyDiv.appendChild(emptyP);
+                archFragment.appendChild(emptyDiv);
+            } else {
+                archData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'p-6 rounded-2xl bg-slate-900/40 border border-slate-800/50 hover:border-blue-500/30 transition-all';
 
-                archFragment.appendChild(div);
-            });
+                    const pRole = document.createElement('p');
+                    pRole.className = 'text-blue-400 font-black text-[10px] uppercase tracking-widest mb-2';
+                    pRole.textContent = item.role;
+
+                    const pText = document.createElement('p');
+                    pText.className = 'text-slate-300 font-semibold text-base';
+                    pText.textContent = item.text;
+
+                    div.appendChild(pRole);
+                    div.appendChild(pText);
+
+                    archFragment.appendChild(div);
+                });
+            }
             archGrid.appendChild(archFragment);
 
             // Chart setup
