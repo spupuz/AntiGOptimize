@@ -231,13 +231,18 @@
                 timelineContainer.classList.remove('border-l', 'pl-8', 'ml-6');
 
                 const emptyDiv = document.createElement('div');
-                emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20';
+                emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-700/50 bg-slate-900/20';
 
                 const emptyP = document.createElement('p');
-                emptyP.className = 'text-slate-500 text-sm';
+                emptyP.className = 'text-slate-300 text-sm font-medium mb-1';
                 emptyP.textContent = 'No memory chunks recorded yet.';
 
+                const emptySubP = document.createElement('p');
+                emptySubP.className = 'text-slate-500 text-xs';
+                emptySubP.textContent = 'Run /snapshot-session to generate real project metrics.';
+
                 emptyDiv.appendChild(emptyP);
+                emptyDiv.appendChild(emptySubP);
                 timelineFragment.appendChild(emptyDiv);
             } else {
                 timelineData.forEach(item => {
@@ -271,13 +276,18 @@
 
             if (archData.length === 0) {
                 const emptyDiv = document.createElement('div');
-                emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20 md:col-span-3';
+                emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-700/50 bg-slate-900/20 md:col-span-3';
 
                 const emptyP = document.createElement('p');
-                emptyP.className = 'text-slate-500 text-sm';
+                emptyP.className = 'text-slate-300 text-sm font-medium mb-1';
                 emptyP.textContent = 'No architecture modules defined yet.';
 
+                const emptySubP = document.createElement('p');
+                emptySubP.className = 'text-slate-500 text-xs';
+                emptySubP.textContent = 'Run /dashboard-omnistate to document architecture modules.';
+
                 emptyDiv.appendChild(emptyP);
+                emptyDiv.appendChild(emptySubP);
                 archFragment.appendChild(emptyDiv);
             } else {
                 archData.forEach(item => {
