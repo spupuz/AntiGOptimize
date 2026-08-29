@@ -52,11 +52,15 @@ if [ -f "$TASKS_HISTORY" ]; then
     # Optimization: Batch jq queries into a single execution to prevent N+1 process spawning overhead
     read -r TOTAL_TASKS ACTIVE_TASKS DONE_TASKS < <(jq -r '[(.tasks | length), ([(.tasks[]? | select(.status == "todo"))] | length), ([(.tasks[]? | select(.status == "done"))] | length)] | @tsv' "$TASKS_HISTORY" 2>/dev/null || echo "0 0 0")
 fi
+TOTAL_TASKS=${TOTAL_TASKS//[!0-9]/}; TOTAL_TASKS=${TOTAL_TASKS:-0}
+ACTIVE_TASKS=${ACTIVE_TASKS//[!0-9]/}; ACTIVE_TASKS=${ACTIVE_TASKS:-0}
+DONE_TASKS=${DONE_TASKS//[!0-9]/}; DONE_TASKS=${DONE_TASKS:-0}
 
 ARCHIVED_TASKS=0
 if [ -f "$TASKS_ARCHIVE" ]; then
     ARCHIVED_TASKS=$(jq '.tasks | length' "$TASKS_ARCHIVE" 2>/dev/null || echo "0")
 fi
+ARCHIVED_TASKS=${ARCHIVED_TASKS//[!0-9]/}; ARCHIVED_TASKS=${ARCHIVED_TASKS:-0}
 
 # --- 3. Snapshots (count chunks) ---
 SNAPSHOTS=0
@@ -64,6 +68,7 @@ CHUNK_DATES=()
 CHUNK_LABELS=()
 if [ -d "$CHUNKS_DIR" ]; then
     SNAPSHOTS=$(find "$CHUNKS_DIR" -name "*.md" -type f 2>/dev/null | wc -l || echo "0")
+    SNAPSHOTS=${SNAPSHOTS//[!0-9]/}; SNAPSHOTS=${SNAPSHOTS:-0}
     # Get last 5 chunks by modification time
     while IFS= read -r chunk; do
         [ -z "$chunk" ] && continue
@@ -85,11 +90,13 @@ TOTAL_WORDS=0
 if [ -d "$CHUNKS_DIR" ]; then
     # Optimization: Batch word counting via find and xargs instead of a loop to avoid N+1 overhead and E2BIG limits
     WORDS=$(find "$CHUNKS_DIR" -maxdepth 1 -name "*.md" -type f -print0 | xargs -r -0 cat 2>/dev/null | wc -w || echo "0")
+    WORDS=${WORDS//[!0-9]/}; WORDS=${WORDS:-0}
     TOTAL_WORDS=$((TOTAL_WORDS + WORDS))
 fi
 # Count words in archived tasks
 if [ -f "$TASKS_ARCHIVE" ]; then
     ARCH_WORDS=$(wc -w < "$TASKS_ARCHIVE" 2>/dev/null || echo "0")
+    ARCH_WORDS=${ARCH_WORDS//[!0-9]/}; ARCH_WORDS=${ARCH_WORDS:-0}
     TOTAL_WORDS=$((TOTAL_WORDS + ARCH_WORDS))
 fi
 
@@ -107,6 +114,7 @@ if [ -d "$CHUNKS_DIR" ] && [ "$SNAPSHOTS" -gt 0 ]; then
     for f in $(ls -t "$CHUNKS_DIR"/*.md 2>/dev/null | tail -5); do
         [ -f "$f" ] || continue
         WORDS=$(wc -w < "$f" 2>/dev/null || echo "0")
+        WORDS=${WORDS//[!0-9]/}; WORDS=${WORDS:-0}
         CHUNK_TOKENS=$(( (WORDS * 13 / 10) + 4000 ))
         CUMULATIVE=$(( CUMULATIVE + CHUNK_TOKENS ))
         CUMUL_K=$(( CUMULATIVE / 1000 ))
