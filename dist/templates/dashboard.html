@@ -234,10 +234,15 @@
                 emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20';
 
                 const emptyP = document.createElement('p');
-                emptyP.className = 'text-slate-500 text-sm';
+                emptyP.className = 'text-slate-200 font-semibold mb-2';
                 emptyP.textContent = 'No memory chunks recorded yet.';
 
+                const actionP = document.createElement('p');
+                actionP.className = 'text-slate-500 text-sm';
+                actionP.textContent = 'Run /snapshot-session to generate.';
+
                 emptyDiv.appendChild(emptyP);
+                emptyDiv.appendChild(actionP);
                 timelineFragment.appendChild(emptyDiv);
             } else {
                 timelineData.forEach(item => {
@@ -274,10 +279,15 @@
                 emptyDiv.className = 'p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20 md:col-span-3';
 
                 const emptyP = document.createElement('p');
-                emptyP.className = 'text-slate-500 text-sm';
+                emptyP.className = 'text-slate-200 font-semibold mb-2';
                 emptyP.textContent = 'No architecture modules defined yet.';
 
+                const actionP = document.createElement('p');
+                actionP.className = 'text-slate-500 text-sm';
+                actionP.textContent = 'Run /dashboard-omnistate to populate.';
+
                 emptyDiv.appendChild(emptyP);
+                emptyDiv.appendChild(actionP);
                 archFragment.appendChild(emptyDiv);
             } else {
                 archData.forEach(item => {
