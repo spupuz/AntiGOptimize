@@ -104,15 +104,19 @@ if [ -d "$CHUNKS_DIR" ] && [ "$SNAPSHOTS" -gt 0 ]; then
     CUMULATIVE=0
     CHART_ITEMS=""
     # Process chunks oldest first for cumulative chart
-    for f in $(ls -t "$CHUNKS_DIR"/*.md 2>/dev/null | tail -5); do
-        [ -f "$f" ] || continue
-        WORDS=$(wc -w < "$f" 2>/dev/null || echo "0")
-        CHUNK_TOKENS=$(( (WORDS * 13 / 10) + 4000 ))
-        CUMULATIVE=$(( CUMULATIVE + CHUNK_TOKENS ))
-        CUMUL_K=$(( CUMULATIVE / 1000 ))
-        [ -z "$CHART_ITEMS" ] && CHART_ITEMS="$CUMUL_K" || CHART_ITEMS="$CHART_ITEMS,$CUMUL_K"
-    done
-    CHART_DATA="[$CHART_ITEMS]"
+    # Optimization: Batch wc calls instead of spawning N+1 processes in loop
+    mapfile -t files < <(ls -t "$CHUNKS_DIR"/*.md 2>/dev/null | tail -5)
+    if [ ${#files[@]} -gt 0 ]; then
+        while read -r count filename; do
+            [ "$filename" = "total" ] && continue
+            WORDS=${count:-0}
+            CHUNK_TOKENS=$(( (WORDS * 13 / 10) + 4000 ))
+            CUMULATIVE=$(( CUMULATIVE + CHUNK_TOKENS ))
+            CUMUL_K=$(( CUMULATIVE / 1000 ))
+            [ -z "$CHART_ITEMS" ] && CHART_ITEMS="$CUMUL_K" || CHART_ITEMS="$CHART_ITEMS,$CUMUL_K"
+        done < <(wc -w "${files[@]}" 2>/dev/null)
+        CHART_DATA="[$CHART_ITEMS]"
+    fi
 fi
 
 # --- 6. Timeline (last 5 chunks) ---
