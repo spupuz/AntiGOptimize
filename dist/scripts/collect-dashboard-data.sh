@@ -30,9 +30,16 @@ json_val() {
 }
 
 # --- 1. Project Name ---
-PROJECT_NAME="Unknown Project"
+PROJECT_NAME=""
 if [ -f "$PROJECT_SUMMARY" ]; then
-    PROJECT_NAME=$(head -5 "$PROJECT_SUMMARY" | grep -oP '(?<=# ).*' | head -1 || echo "")
+    count=0
+    while IFS= read -r line && (( count < 5 )); do
+        if [[ "$line" == "# "* ]]; then
+            PROJECT_NAME="${line#*# }"
+            break
+        fi
+        ((count++))
+    done < "$PROJECT_SUMMARY"
 fi
 if [ -z "$PROJECT_NAME" ] || [ "$PROJECT_NAME" = "Unknown Project" ]; then
     PROJECT_NAME=$(json_val "$CONFIG_FILE" "project_name" "")
@@ -73,7 +80,15 @@ if [ -d "$CHUNKS_DIR" ]; then
         fallback_name="${chunk##*/}"
         fallback_name="${fallback_name%.md}"
 
-        LABEL=$(head -3 "$chunk" | grep -oP '(?<=# ).*' | head -1 || echo "$fallback_name")
+        LABEL="$fallback_name"
+        count=0
+        while IFS= read -r line && (( count < 3 )); do
+            if [[ "$line" == "# "* ]]; then
+                LABEL="${line#*# }"
+                break
+            fi
+            ((count++))
+        done < "$chunk"
         CHUNK_DATES+=("$DATE_STR")
         CHUNK_LABELS+=("$LABEL")
     done < <(ls -t "$CHUNKS_DIR"/*.md 2>/dev/null | head -5)
