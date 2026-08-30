@@ -199,10 +199,11 @@ function Sync-ToProject($target) {
     $gitignore = Join-Path $target ".gitignore"
     if (Test-Path $gitignore) {
         $content = Get-Content $gitignore -Raw
+        $contentWithNewline = "`n" + $content
         $additions = @()
         $allPatterns = $memoryFiles + $ideDirs
         foreach ($pattern in $allPatterns) {
-            if (-not $content.Contains($pattern)) { $additions += $pattern }
+            if (-not $contentWithNewline.Contains("`n" + $pattern)) { $additions += $pattern }
         }
         if ($additions.Count -gt 0) { Add-Content -Path $gitignore -Value $additions -Encoding UTF8 }
     }

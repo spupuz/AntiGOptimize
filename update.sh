@@ -255,10 +255,11 @@ sync_to_project() {
     if [ -f "$target/.gitignore" ]; then
         local content
         content=$(<"$target/.gitignore")
+        local content_with_newline=$'\n'"$content"
         local additions=()
 
         for pattern in "${MEMORY_FILES[@]}" "${IDE_DIRS[@]}"; do
-            if [[ ! "$content" == *"$pattern"* ]]; then
+            if [[ ! "$content_with_newline" == *$'\n'"$pattern"* ]]; then
                 additions+=("$pattern")
             fi
         done
