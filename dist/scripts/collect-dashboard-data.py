@@ -27,18 +27,27 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
 
     def count_words(path):
         try:
-            return len(path.read_text().split())
+            count = 0
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    count += len(line.split())
+            return count
         except Exception:
             return 0
 
     # 1. Project name
     project_name = "Unknown Project"
     if project_summary.exists():
-        for line in project_summary.read_text().splitlines()[:5]:
-            m = re.match(r'^#\s+(.+)', line)
-            if m:
-                project_name = m.group(1).strip()
-                break
+        try:
+            with open(project_summary, 'r', encoding='utf-8', errors='ignore') as f:
+                for i, line in enumerate(f):
+                    if i >= 5: break
+                    m = re.match(r'^#\s+(.+)', line)
+                    if m:
+                        project_name = m.group(1).strip()
+                        break
+        except Exception:
+            pass
     if project_name == "Unknown Project":
         cfg = load_json(config_file)
         project_name = cfg.get("project_name", "") or project.name
@@ -79,11 +88,16 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
         mtime = datetime.fromtimestamp(f.stat().st_mtime)
         date_str = mtime.strftime("%b %d")
         label = "Session"
-        for line in f.read_text().splitlines()[:3]:
-            m = re.match(r'^#\s+(.+)', line)
-            if m:
-                label = m.group(1).strip()[:40]
-                break
+        try:
+            with open(f, 'r', encoding='utf-8', errors='ignore') as file_obj:
+                for i, line in enumerate(file_obj):
+                    if i >= 3: break
+                    m = re.match(r'^#\s+(.+)', line)
+                    if m:
+                        label = m.group(1).strip()[:40]
+                        break
+        except Exception:
+            pass
         timeline.append({"date": date_str, "label": label, "text": "Session chunk captured"})
 
     # 7. Cost data
@@ -95,19 +109,23 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     architecture = []
     if project_summary.exists():
         in_modules = False
-        for line in project_summary.read_text().splitlines():
-            if "odule" in line:
-                in_modules = True
-                continue
-            if in_modules:
-                m = re.match(r'^\s*-\s*`([^`]+)`\s*:\s*(.*)', line.strip())
-                if m:
-                    architecture.append({
-                        "role": m.group(1).split("/")[-1][:20],
-                        "text": m.group(2).strip()[:80]
-                    })
-                elif line.strip() and not line.startswith(" ") and not line.startswith("-"):
-                    break
+        try:
+            with open(project_summary, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    if "odule" in line:
+                        in_modules = True
+                        continue
+                    if in_modules:
+                        m = re.match(r'^\s*-\s*`([^`]+)`\s*:\s*(.*)', line.strip())
+                        if m:
+                            architecture.append({
+                                "role": m.group(1).split("/")[-1][:20],
+                                "text": m.group(2).strip()[:80]
+                            })
+                        elif line.strip() and not line.startswith(" ") and not line.startswith("-"):
+                            break
+        except Exception:
+            pass
     if not architecture:
         architecture = [{"role": "Project", "text": "See project-summary.md"}]
 
