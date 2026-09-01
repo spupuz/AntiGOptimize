@@ -75,8 +75,8 @@
                 <div class="flex items-center gap-3 mb-3">
                     <span class="px-4 py-1.5 bg-blue-600/20 text-blue-400 text-xs font-bold rounded-full border border-blue-600/30 tracking-wider">OMNISTATE v{{VERSION}}</span>
                     <span class="flex items-center gap-1.5 text-xs text-emerald-400 font-bold uppercase tracking-widest pulse">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
-                        Operational
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" aria-hidden="true"></span>
+                        <span class="sr-only">System status: </span>Operational
                     </span>
                 </div>
                 <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight glow-text" id="project-name">Project Dashboard</h1>
@@ -100,7 +100,7 @@
             <div class="glass p-8 stat-card group">
                 <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-emerald-400 transition-colors">Archived Tasks</p>
                 <h3 class="text-4xl font-black" id="archived-tasks">0</h3>
-                <p class="text-xs text-emerald-400 mt-3 font-semibold tracking-tight tracking-wide">Efficiency optimized</p>
+                <p class="text-xs text-emerald-400 mt-3 font-semibold tracking-wide">Efficiency optimized</p>
             </div>
             <div class="glass p-8 stat-card group">
                 <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-purple-400 transition-colors">Session Depth</p>
@@ -149,7 +149,7 @@
         </div>
 
         <footer class="mt-20 py-8 text-center">
-            <p class="text-slate-600 text-[10px] uppercase tracking-[0.4em] font-bold">OmniState | Persistent Memory & Token Optimization</p>
+            <p class="text-slate-400 text-[10px] uppercase tracking-[0.4em] font-bold">OmniState | Persistent Memory & Token Optimization</p>
         </footer>
     </div>
 
@@ -344,11 +344,11 @@
                         y: { 
                             beginAtZero: true, 
                             grid: { color: 'rgba(255,255,255,0.03)' },
-                            ticks: { color: '#475569', font: { size: 10, weight: 'bold' } }
+                            ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
                         },
                         x: { 
                             grid: { display: false },
-                            ticks: { color: '#475569', font: { size: 10, weight: 'bold' } }
+                            ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
                         }
                     }
                 }
