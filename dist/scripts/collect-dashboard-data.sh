@@ -207,7 +207,9 @@ fi
 
 # --- Build output JSON ---
 # SECURE: escape '<' to prevent XSS vulnerability when injected into an HTML script block
-cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$OUTPUT_FILE"
+# SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
+TMP_FILE=$(mktemp "$(dirname "$OUTPUT_FILE")/.tmp.XXXXXX")
+cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$TMP_FILE"
 {
     "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
     "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")",
@@ -226,6 +228,8 @@ cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$OUTPUT_FILE"
     "chartData": $CHART_DATA
 }
 ENDJSON
+chmod 644 "$TMP_FILE"
+mv "$TMP_FILE" "$OUTPUT_FILE"
 
 echo "Dashboard data collected → $OUTPUT_FILE"
 echo "  Project: $PROJECT_NAME"

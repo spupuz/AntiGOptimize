@@ -59,6 +59,8 @@ migrate_project() {
     # Migrate schema
     if command -v jq &>/dev/null; then
         # Use jq for proper JSON transformation
+        # SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
+        tmp_file=$(mktemp "$(dirname "$new_config")/.tmp.XXXXXX")
         jq --arg version "$VERSION" '
             # Remove compression_level
             del(.optimization.compression_level) |
@@ -69,10 +71,16 @@ migrate_project() {
             .models.preferred_pro = "" |
             # Update version
             .omnistate_version = $version
-        ' "$old_config" > "$new_config"
+        ' "$old_config" > "$tmp_file"
+        chmod 644 "$tmp_file"
+        mv "$tmp_file" "$new_config"
     else
         # Fallback: copy and warn about manual cleanup
-        cp -a "$old_config" "$new_config"
+        # SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
+        tmp_file=$(mktemp "$(dirname "$new_config")/.tmp.XXXXXX")
+        cp -a "$old_config" "$tmp_file"
+        chmod 644 "$tmp_file"
+        mv "$tmp_file" "$new_config"
         warn "jq not found - copied as-is. Manual cleanup needed:"
         warn "  - Remove 'compression_level' from optimization"
         warn "  - Add 'project_name' field"
