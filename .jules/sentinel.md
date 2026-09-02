@@ -1,5 +1,0 @@
-## 2026-09-01 - Prevent Symlink Traversal Vulnerabilities in Bash Scripts
-**Vulnerability:** Shell scripts (`migrate.sh`, `dist/scripts/collect-dashboard-data.sh`) were using direct output redirection (`>`) or file copying (`cp`) to overwrite configuration and data files. This allows symlink traversal, and predicting `.tmp` file paths is an Insecure Temporary File vulnerability.
-**Learning:** Writing directly to a path without unlinking it first or safely moving a new file over it allows arbitrary file overwrite if the target path is a symlink. Using predictable temporary files (e.g. `filename.tmp`) is also vulnerable.
-**Prevention:** Always use `mktemp` to generate secure, unpredictable temporary file paths, write output to that temporary file, and then use `mv` to atomically replace the destination file.
-**Note on mktemp:** By default, `mktemp` uses `0600` permissions and creates files in `/tmp`. To avoid permission regressions on shared artifacts, use `chmod 644` before moving. To ensure the move operation is atomic (avoiding cross-device fallback), specify the target directory (e.g. `mktemp "$(dirname "$target")/.tmp.XXXXXX"`).

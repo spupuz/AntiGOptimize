@@ -1,4 +1,4 @@
-# OmniState v1.5.1
+# OmniState v1.9.3
 
 **Universal Persistent Memory** for any AI coding tool.
 Works with opencode, Antigravity, Kilocode, Roo Code, Claude Code, and more.
@@ -207,7 +207,48 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 
 ## Changelog
 
-### v1.5.1 (current)
+### v1.9.3 (current)
+- **Security**: Fix symlink traversal vulnerabilities in shell scripts (`migrate.sh`, `collect-dashboard-data.sh`) using `mktemp` + `mv` for atomic file operations
+- **UX**: Improve dark mode contrast and screen reader accessibility in dashboard
+- **Accessibility**: Add `aria-hidden`/`sr-only` labels to status indicator
+
+### v1.9.2
+- **Performance**: Optimize file reading in Python dashboard script
+- Use line-by-line iteration instead of `read_text().split()`
+- Add error handling for file read operations
+
+### v1.9.1
+- **UX**: Style inline CLI commands in empty states
+- **Performance**: Optimize resource loading in dashboard (defer chart.js, preconnect fonts)
+
+### v1.9.0
+- **UX**: Improve empty states with helpful CTAs and actionable subtext
+- **Security**: Fix gitignore substring matching vulnerability
+- **Security**: Fix bash arithmetic injection risk
+- **Performance**: Batch `wc -w` calls to remove N+1 overhead
+- **Performance**: Replace external processes with native bash string matching
+
+### v1.8.0
+- **UX**: Add empty states to dashboard data views
+
+### v1.7.1
+- **Performance**: Replace `basename` with parameter expansion for performance
+- **Security**: Fix XSS vulnerability in JSON escaping (`<` and `>`)
+
+### v1.7.0
+- **Security**: Escape `<` in dashboard JSON to prevent XSS
+- **Security**: Replace `innerHTML` with DOM building to fix XSS
+- **Accessibility**: Add ARIA progressbar roles to dashboard
+- **Performance**: Batch file copy, subprocess, and jq query operations
+
+### v1.6.1
+- **Security**: Fix command injection in Python embedded scripts
+
+### v1.6.0
+- **Performance**: Optimize JSON parsing in dashboard collection script using `jq`
+- **Accessibility**: Improve dashboard keyboard and screen reader accessibility
+
+### v1.5.1
 - **Support section**: Added Buy Me a Coffee link
 
 ### v1.5.0
