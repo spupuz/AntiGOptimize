@@ -21,7 +21,8 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
 
     def load_json(path):
         try:
-            return json.loads(path.read_text())
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                return json.load(f)
         except Exception:
             return {}
 
@@ -56,8 +57,15 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     history = load_json(tasks_history)
     tasks = history.get("tasks", [])
     total_tasks = len(tasks)
-    active_tasks = sum(1 for t in tasks if t.get("status") == "todo")
-    done_tasks = sum(1 for t in tasks if t.get("status") == "done")
+
+    active_tasks = 0
+    done_tasks = 0
+    for t in tasks:
+        s = t.get("status")
+        if s == "todo":
+            active_tasks += 1
+        elif s == "done":
+            done_tasks += 1
 
     archive = load_json(tasks_archive)
     archived_tasks = len(archive.get("tasks", []))

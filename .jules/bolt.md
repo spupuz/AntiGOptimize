@@ -1,0 +1,3 @@
+## 2024-09-02 - Python JSON Loading Overhead
+**Learning:** Loading JSON using `Path.read_text()` combined with `json.loads()` creates an unnecessary intermediate string representation in memory, which is slower than passing the file object directly to `json.load()` via `open()`. Additionally, multiple iterations over large lists for simple counting (e.g., active and done tasks) add unnecessary O(N) overhead.
+**Action:** Use `json.load(f)` with a standard file handle `open(...)` instead of `json.loads(path.read_text())` for better memory efficiency and performance. Consolidate multiple list comprehensions into a single loop.
