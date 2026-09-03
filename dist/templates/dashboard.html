@@ -83,7 +83,7 @@
                 <p class="text-slate-400 mt-3 text-lg font-light" id="project-description">Intelligence & token optimization overview</p>
             </div>
             <div class="text-left md:text-right glass px-6 py-4">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Snapshot Integrity</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Snapshot Integrity</p>
                 <p class="text-2xl font-black text-slate-100" id="last-updated">--/--/----</p>
             </div>
         </header>
@@ -91,21 +91,21 @@
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             <div class="glass p-8 stat-card group">
-                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-blue-400 transition-colors">Active Tasks</p>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-blue-400 transition-colors">Active Tasks</p>
                 <h3 class="text-4xl font-black" id="active-tasks">0</h3>
                 <div id="task-progress-container" role="progressbar" aria-label="Task progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" class="mt-6 w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
                     <div id="task-progress" class="bg-blue-500 h-full w-0 transition-all duration-1000"></div>
                 </div>
             </div>
             <div class="glass p-8 stat-card group">
-                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-emerald-400 transition-colors">Archived Tasks</p>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-emerald-400 transition-colors">Archived Tasks</p>
                 <h3 class="text-4xl font-black" id="archived-tasks">0</h3>
                 <p class="text-xs text-emerald-400 mt-3 font-semibold tracking-wide">Efficiency optimized</p>
             </div>
             <div class="glass p-8 stat-card group">
-                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-purple-400 transition-colors">Session Depth</p>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 group-hover:text-purple-400 transition-colors">Session Depth</p>
                 <h3 class="text-4xl font-black" id="total-snapshots">0</h3>
-                <p class="text-xs text-slate-500 mt-3 italic">Persistent memory log</p>
+                <p class="text-xs text-slate-400 mt-3 italic">Persistent memory log</p>
             </div>
             <div class="glass p-8 border-blue-500/30 bg-blue-500/5 stat-card group overflow-hidden relative">
                 <div class="absolute -right-4 -top-4 w-20 h-20 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all"></div>
@@ -121,7 +121,7 @@
             <div class="lg:col-span-2 glass p-10">
                 <div class="flex justify-between items-center mb-10">
                     <h2 class="text-2xl font-bold">Optimization Curve</h2>
-                    <span class="text-xs text-slate-500 font-mono">Cumulative Token Savings (k)</span>
+                    <span class="text-xs text-slate-400 font-mono">Cumulative Token Savings (k)</span>
                 </div>
                 <div class="h-80 w-full">
                     <canvas id="savingsChart" role="img" aria-label="Optimization Curve Chart"></canvas>
@@ -240,7 +240,7 @@
                 emptyP.textContent = 'No memory chunks recorded yet.';
 
                 const emptySubP = document.createElement('p');
-                emptySubP.className = 'text-slate-500 text-xs';
+                emptySubP.className = 'text-slate-400 text-xs';
                 emptySubP.innerHTML = 'Run <code class="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-mono">/snapshot-session</code> to generate real project metrics.';
 
                 emptyDiv.appendChild(emptyP);
@@ -252,7 +252,7 @@
                     div.className = 'timeline-item relative group cursor-default';
 
                     const pDate = document.createElement('p');
-                    pDate.className = 'text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors';
+                    pDate.className = 'text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-400 transition-colors';
                     pDate.textContent = item.date;
 
                     const h4Label = document.createElement('h4');
@@ -285,7 +285,7 @@
                 emptyP.textContent = 'No architecture modules defined yet.';
 
                 const emptySubP = document.createElement('p');
-                emptySubP.className = 'text-slate-500 text-xs';
+                emptySubP.className = 'text-slate-400 text-xs';
                 emptySubP.innerHTML = 'Run <code class="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-mono">/dashboard-omnistate</code> to document architecture modules.';
 
                 emptyDiv.appendChild(emptyP);
