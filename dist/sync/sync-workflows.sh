@@ -35,8 +35,10 @@ function sync_workflows() {
             if [[ -f "$target_file" ]]; then
                 if [[ "$file" -nt "$target_file" ]]; then
                     echo "   → Updating: $filename"
-                    cp "$file" "$target_file.tmp"
-                    mv "$target_file.tmp" "$target_file"
+                    tmp_file=$(mktemp "$(dirname "$target_file")/.tmp.XXXXXX")
+                    cp "$file" "$tmp_file"
+                    chmod 644 "$tmp_file"
+                    mv "$tmp_file" "$target_file"
                 elif [[ "$file" -ot "$target_file" ]]; then
                     echo "   ← Newer in target: $filename"
                 else
@@ -44,8 +46,10 @@ function sync_workflows() {
                 fi
             else
                 echo "   → Adding: $filename"
-                cp "$file" "$target_file.tmp"
-                mv "$target_file.tmp" "$target_file"
+                tmp_file=$(mktemp "$(dirname "$target_file")/.tmp.XXXXXX")
+                cp "$file" "$tmp_file"
+                chmod 644 "$tmp_file"
+                mv "$tmp_file" "$target_file"
             fi
         fi
     done
@@ -100,7 +104,8 @@ function sync_shared_config() {
     fi
 
     # Create JSON configuration
-    cat > "$SHARED_CONFIG" << EOF
+    tmp_file=$(mktemp "$(dirname "$SHARED_CONFIG")/.tmp.XXXXXX")
+    cat > "$tmp_file" << EOF
 {
     "version": "1.1.1",
     "last_sync": "$(date -Iseconds)",
@@ -111,6 +116,8 @@ $json_files
     "kilo_commands": "$KILO_COMMANDS"
 }
 EOF
+    chmod 644 "$tmp_file"
+    mv "$tmp_file" "$SHARED_CONFIG"
     
     echo "   ✓ Shared config created: $SHARED_CONFIG"
 }
