@@ -265,7 +265,15 @@ sync_to_project() {
         done
 
         if [ ${#additions[@]} -gt 0 ]; then
-            printf "\n%s\n" "${additions[@]}" >> "$target/.gitignore"
+            # SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
+            local tmp_file
+            tmp_file=$(mktemp "$(dirname "$target/.gitignore")/.tmp.XXXXXX")
+            if [ -f "$target/.gitignore" ]; then
+                cat "$target/.gitignore" > "$tmp_file"
+            fi
+            printf "\n%s\n" "${additions[@]}" >> "$tmp_file"
+            chmod 644 "$tmp_file"
+            mv "$tmp_file" "$target/.gitignore"
         fi
     fi
 
@@ -298,7 +306,12 @@ auto_update() {
                 ok "Updated to $(cat "$SCRIPT_DIR/VERSION.txt" | tr -d '[:space:]')"
             fi
         fi
-        echo "$now" > "$check_file"
+        # SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
+        local tmp_file
+        tmp_file=$(mktemp "$(dirname "$check_file")/.tmp.XXXXXX")
+        echo "$now" > "$tmp_file"
+        chmod 644 "$tmp_file"
+        mv "$tmp_file" "$check_file"
     fi
 }
 

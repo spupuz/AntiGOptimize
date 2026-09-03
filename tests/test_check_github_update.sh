@@ -74,7 +74,11 @@ auto_update() {
                 echo "UPDATE_AVAILABLE"
             fi
         fi
-        echo "$now" > "$check_file"
+        local tmp_file
+        tmp_file=$(mktemp "$(dirname "$check_file")/.tmp.XXXXXX")
+        echo "$now" > "$tmp_file"
+        chmod 644 "$tmp_file"
+        mv "$tmp_file" "$check_file"
     fi
 }
 
