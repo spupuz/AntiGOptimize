@@ -273,10 +273,10 @@ function Install-Global {
     if (!(Test-Path $localSkills)) { New-Item -ItemType Directory -Path $localSkills -Force | Out-Null }
     $distSkills = Join-Path $scriptDir "dist\skills"
     if (Test-Path $distSkills) {
-        foreach ($skillDir in (Get-ChildItem $distSkills -Directory)) {
-            $dest = Join-Path $localSkills $skillDir.Name
-            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
-            Copy-Item -Path "$($skillDir.FullName)\*" -Destination $dest -Force
+        # Optimization: Batch array copy to prevent N+1 process spawning overhead
+        $skillDirs = @(Get-ChildItem -Path $distSkills -Directory)
+        if ($skillDirs.Count -gt 0) {
+            Copy-Item -Path $skillDirs.FullName -Destination $localSkills -Recurse -Force
         }
     }
 
