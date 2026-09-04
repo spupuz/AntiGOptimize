@@ -1,3 +1,0 @@
-## 2024-09-03 - [Array Globbing Batch Copy Issue]
-**Learning:** Shell `cp -a "${array[@]}" "$dest"` works normally to copy directories. However, on macOS and BSD systems, if the paths in the array end with a trailing slash (which occurs when using shell globbing like `*/`), `cp` will copy the *contents* of the directory rather than the directory itself. This is an OS-specific nuance that will corrupt file architectures when standard GNU Linux patterns are assumed.
-**Action:** When performing array-based file copying loops in shell scripts to save subprocess overhead, avoid native trailing slash globbing without pre-processing the strings to remove the slash (e.g. `path="${path%/}"`), or verify the operation correctly handles BSD behavior.
