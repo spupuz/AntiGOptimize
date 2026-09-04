@@ -313,46 +313,68 @@
             archGrid.appendChild(archFragment);
 
             // Chart setup
-            const ctx = document.getElementById('savingsChart').getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
-            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            const chartData = data.chartData || [];
+            if (chartData.length === 0) {
+                const chartCanvas = document.getElementById('savingsChart');
+                const chartContainer = chartCanvas.parentElement;
+                chartContainer.innerHTML = '';
 
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: (data.chartData || []).map((_, i) => 'Snap ' + (i+1)),
-                    datasets: [{
-                        data: data.chartData || [],
-                        borderColor: '#3b82f6',
-                        backgroundColor: gradient,
-                        borderWidth: 4,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#3b82f6',
-                        pointBorderColor: '#070b14',
-                        pointBorderWidth: 2,
-                        pointRadius: 6,
-                        pointHoverRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { color: 'rgba(255,255,255,0.03)' },
-                            ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-                        },
-                        x: { 
-                            grid: { display: false },
-                            ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'h-full w-full flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-slate-700/50 bg-slate-900/20';
+
+                const emptyP = document.createElement('p');
+                emptyP.className = 'text-slate-300 text-sm font-medium mb-1';
+                emptyP.textContent = 'No optimization data yet.';
+
+                const emptySubP = document.createElement('p');
+                emptySubP.className = 'text-slate-400 text-xs';
+                emptySubP.innerHTML = 'Run <code class="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 font-mono">/snapshot-session</code> to build the curve.';
+
+                emptyDiv.appendChild(emptyP);
+                emptyDiv.appendChild(emptySubP);
+                chartContainer.appendChild(emptyDiv);
+            } else {
+                const ctx = document.getElementById('savingsChart').getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.map((_, i) => 'Snap ' + (i+1)),
+                        datasets: [{
+                            data: chartData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: gradient,
+                            borderWidth: 4,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#070b14',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255,255,255,0.03)' },
+                                ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
         });
     </script>
 </body>
