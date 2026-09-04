@@ -357,13 +357,15 @@ install_global() {
 
     # Always ensure local .opencode/skills is populated
     mkdir -p "$SCRIPT_DIR/.opencode/skills"
-    for skill_dir in "$SCRIPT_DIR/dist/skills"/*/; do
-        local skill_name
-        local skill_dir_no_slash="${skill_dir%/}"
-        skill_name="${skill_dir_no_slash##*/}"
-        mkdir -p "$SCRIPT_DIR/.opencode/skills/$skill_name"
-        cp -a "$skill_dir"* "$SCRIPT_DIR/.opencode/skills/$skill_name/"
-    done
+    # Optimization: Batch array copy to prevent N+1 process spawning overhead
+    local skill_dirs=("$SCRIPT_DIR/dist/skills"/*/)
+    if [ -d "${skill_dirs[0]}" ]; then
+        local safe_dirs=()
+        for dir in "${skill_dirs[@]}"; do
+            safe_dirs+=("${dir%/}")
+        done
+        cp -a "${safe_dirs[@]}" "$SCRIPT_DIR/.opencode/skills/"
+    fi
 
     ok "OmniState v$VERSION installed successfully!"
     echo ""
