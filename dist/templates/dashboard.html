@@ -68,6 +68,7 @@
     </style>
 </head>
 <body class="p-6 md:p-12">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:font-bold focus:outline-none focus:ring-2 focus:ring-blue-400">Skip to main content</a>
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
@@ -116,7 +117,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <main id="main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8" tabindex="-1">
             <!-- Left: Performance -->
             <div class="lg:col-span-2 glass p-10">
                 <div class="flex justify-between items-center mb-10">
@@ -135,7 +136,7 @@
                     <!-- Timeline items will be injected here -->
                 </div>
             </div>
-        </div>
+        </main>
 
         <!-- Tech Stack / Architecture -->
         <div class="mt-12 glass p-10">
