@@ -78,7 +78,7 @@ migrate_project() {
         # Fallback: copy and warn about manual cleanup
         # SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
         tmp_file=$(mktemp "$(dirname "$new_config")/.tmp.XXXXXX")
-        cp -a "$old_config" "$tmp_file"
+        cat "$old_config" > "$tmp_file"
         chmod 644 "$tmp_file"
         mv "$tmp_file" "$new_config"
         warn "jq not found - copied as-is. Manual cleanup needed:"

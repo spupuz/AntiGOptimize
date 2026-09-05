@@ -36,7 +36,7 @@ function sync_workflows() {
                 if [[ "$file" -nt "$target_file" ]]; then
                     echo "   → Updating: $filename"
                     tmp_file=$(mktemp "$(dirname "$target_file")/.tmp.XXXXXX")
-                    cp "$file" "$tmp_file"
+                    cat "$file" > "$tmp_file"
                     chmod 644 "$tmp_file"
                     mv "$tmp_file" "$target_file"
                 elif [[ "$file" -ot "$target_file" ]]; then
@@ -47,7 +47,7 @@ function sync_workflows() {
             else
                 echo "   → Adding: $filename"
                 tmp_file=$(mktemp "$(dirname "$target_file")/.tmp.XXXXXX")
-                cp "$file" "$tmp_file"
+                cat "$file" > "$tmp_file"
                 chmod 644 "$tmp_file"
                 mv "$tmp_file" "$target_file"
             fi
