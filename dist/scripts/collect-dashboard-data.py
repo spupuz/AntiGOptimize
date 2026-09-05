@@ -90,11 +90,7 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     chart_data = []
     cumulative = 0
     for f in reversed(chunks[:5]):
-<<<<<<< HEAD
         words = chunk_word_counts.get(f, count_words(f))
-=======
-        words = chunk_word_counts[f]
->>>>>>> origin/bolt/cache-word-counts-15500821510883477087
         cumulative += int(words * 1.3) + 4000
         chart_data.append(cumulative // 1000)
 
