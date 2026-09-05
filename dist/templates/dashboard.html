@@ -131,7 +131,7 @@
             <!-- Right: Timeline -->
             <div class="glass p-10 flex flex-col">
                 <h2 class="text-2xl font-bold mb-10">Memory Chunks</h2>
-                <div class="relative ml-6 border-l border-slate-800 pl-8 space-y-12 overflow-y-auto max-h-[420px] pr-4 custom-scroll focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg" id="timeline-container" tabindex="0" role="region" aria-label="Memory Chunks Timeline">
+                <div class="relative ml-6 border-l border-slate-800 pl-8 space-y-12 overflow-y-auto max-h-[420px] pr-4 custom-scroll focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg" id="timeline-container" tabindex="0" role="list" aria-label="Memory Chunks Timeline">
                     <!-- Timeline items will be injected here -->
                 </div>
             </div>
@@ -143,7 +143,7 @@
                 Architecture Roadmap
                 <span class="h-px flex-1 bg-slate-800"></span>
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="architecture-grid">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="architecture-grid" role="list">
                 <!-- Modules will be injected here -->
             </div>
         </div>
@@ -250,6 +250,8 @@
                 timelineData.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'timeline-item relative group cursor-default';
+                    div.setAttribute('role', 'listitem');
+                    div.setAttribute('title', item.label);
 
                     const pDate = document.createElement('p');
                     pDate.className = 'text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-400 transition-colors';
@@ -295,6 +297,7 @@
                 archData.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'p-6 rounded-2xl bg-slate-900/40 border border-slate-800/50 hover:border-blue-500/30 transition-all';
+                    div.setAttribute('role', 'listitem');
 
                     const pRole = document.createElement('p');
                     pRole.className = 'text-blue-400 font-black text-[10px] uppercase tracking-widest mb-2';
