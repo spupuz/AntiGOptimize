@@ -1,4 +1,4 @@
-## 2024-09-04 - Fix symlink traversal mitigation bypass in migrate.sh
-**Vulnerability:** When mitigating symlink traversal vulnerabilities using `mktemp`, using `cp -a` to copy the original file's contents into the temporary file defeats the mitigation by preserving symlinks, replacing the secure temp file.
-**Learning:** The `-a` (archive) flag preserves symlinks. Overwriting a securely created temporary file with `cp -a` introduces a symlink traversal vulnerability.
-**Prevention:** Use `cat "$original_file" > "$tmp_file"` to copy only the file contents into the securely created temporary file, ensuring the temporary file remains a regular file.
+## 2024-09-05 - Symlink Traversal Vulnerability in mktemp Mitigation
+**Vulnerability:** When mitigating symlink traversal vulnerabilities using `mktemp` to create a temporary file, using `cp -a` or `cp` to copy the original file's contents into the temp file preserves symlinks or attributes, which could replace the secure temporary file with a symlink to the target, defeating the mitigation.
+**Learning:** The `-a` (archive) flag or standard `cp` can preserve symlinks or overwrite file descriptors, defeating the purpose of creating a secure temporary file.
+**Prevention:** Instead of `cp`, use `cat "$original_file" > "$tmp_file"` to copy only the file contents securely into the temporary file created by `mktemp`.
