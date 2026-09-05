@@ -77,7 +77,14 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     snapshots = len(chunks)
 
     # 4. Token savings
-    total_words = sum(count_words(f) for f in chunks)
+    # Optimization: Cache word counts to eliminate redundant disk I/O when building chart data
+    chunk_word_counts = {}
+    total_words = 0
+    for f in chunks:
+        words = count_words(f)
+        chunk_word_counts[f] = words
+        total_words += words
+
     total_words += count_words(tasks_archive)
     token_saved = int(total_words * 1.3) + (snapshots * 4000)
     token_saved_k = max(token_saved // 1000, 1 if token_saved > 0 else 0)
@@ -86,7 +93,7 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     chart_data = []
     cumulative = 0
     for f in reversed(chunks[:5]):
-        words = count_words(f)
+        words = chunk_word_counts[f]
         cumulative += int(words * 1.3) + 4000
         chart_data.append(cumulative // 1000)
 
