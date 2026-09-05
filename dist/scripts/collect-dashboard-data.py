@@ -79,8 +79,7 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     snapshots = len(chunks)
 
     # 4. Token savings
-    # BOLT OPTIMIZATION: Cache word counts per file to prevent O(N) duplicate disk reads in section 5
-    # Expected impact: ~50% reduction in I/O operations for chart data generation
+    # Cache word counts per chunk to avoid redundant disk reads when building chart data in section 5
     chunk_word_counts = {f: count_words(f) for f in chunks}
     total_words = sum(chunk_word_counts.values())
     total_words += count_words(tasks_archive)
@@ -91,7 +90,11 @@ def collect(project_dir: str = ".", output_file: str = "dashboard-data.json"):
     chart_data = []
     cumulative = 0
     for f in reversed(chunks[:5]):
+<<<<<<< HEAD
         words = chunk_word_counts.get(f, count_words(f))
+=======
+        words = chunk_word_counts[f]
+>>>>>>> origin/bolt/cache-word-counts-15500821510883477087
         cumulative += int(words * 1.3) + 4000
         chart_data.append(cumulative // 1000)
 
