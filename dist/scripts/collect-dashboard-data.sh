@@ -209,10 +209,14 @@ fi
 # SECURE: escape '<' to prevent XSS vulnerability when injected into an HTML script block
 # SECURITY: use mktemp and mv to prevent symlink traversal and ensure atomic updates
 TMP_FILE=$(mktemp "$(dirname "$OUTPUT_FILE")/.tmp.XXXXXX")
+PROJECT_NAME_ESCAPED=$(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\"")
+VERSION_STR="$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")"
+VERSION_ESCAPED=$(jq -n --arg v "$VERSION_STR" '$v' 2>/dev/null || echo "\"$VERSION_STR\"")
+
 cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$TMP_FILE"
 {
-    "projectName": $(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\""),
-    "version": "$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")",
+    "projectName": $PROJECT_NAME_ESCAPED,
+    "version": $VERSION_ESCAPED,
     "activeTasks": $ACTIVE_TASKS,
     "totalTasks": $((TOTAL_TASKS + ARCHIVED_TASKS)),
     "archivedTasks": $ARCHIVED_TASKS,

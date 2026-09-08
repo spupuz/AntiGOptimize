@@ -1,0 +1,4 @@
+## 2024-05-18 - JSON Injection in Bash Heredoc
+**Vulnerability:** Bash command substitution inside a JSON here-doc (`cat << ENDJSON`) using `$(jq -n ...)` was susceptible to evaluation hangs and incorrect quoting when the input string contained unescaped quotes or backslashes.
+**Learning:** Directly injecting command output into a JSON here-doc stream can lead to evaluation issues or JSON injection if the substituted variable is not securely escaped beforehand. `jq` processes variables safely but its evaluation inside a heredoc can cause race conditions or parsing errors.
+**Prevention:** Always pre-escape dynamic shell variables using `jq -n --arg var "$VALUE" '$var'` *before* constructing the here-doc string, and inject the pre-escaped variable directly to prevent evaluation issues and ensure deterministic JSON syntax.
