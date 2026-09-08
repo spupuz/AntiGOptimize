@@ -1,4 +1,4 @@
-# OmniState v1.12.0
+# OmniState v1.12.1
 
 **Universal Persistent Memory** for any AI coding tool.
 Works with opencode, Antigravity, Kilocode, Roo Code, Claude Code, and more.
@@ -207,7 +207,10 @@ export REPO_DIR=~/OmniState; [ -d $REPO_DIR ] || git clone https://github.com/sp
 
 ## Changelog
 
-### v1.12.0 (current)
+### v1.12.1 (current)
+- **Bugfix**: Fix double-escaping of project name in `collect-dashboard-data.sh` that produced invalid JSON output (removed redundant manual escaping now that `jq -n --arg` handles it)
+
+### v1.12.0
 - **Security**: Fix JSON injection vulnerabilities in `collect-dashboard-data.sh` (awk backslash escaping bypass, quote/backslash escaping for dates, labels, project name)
 - **Performance**: Avoid eager evaluation of `dict.get()` default argument in `collect-dashboard-data.py` (lazy dict lookup passes)
 - **Accessibility**: Improve screen reader semantics for metrics and empty states in dashboard (`role="list"`/`role="listitem"`)

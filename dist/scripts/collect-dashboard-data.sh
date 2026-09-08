@@ -209,7 +209,7 @@ if [ -f "$PROJECT_SUMMARY" ]; then
     }' "$PROJECT_SUMMARY" 2>/dev/null || echo "[{\"role\":\"Project\",\"text\":\"See project-summary.md\"}]")
 fi
 
-PROJECT_NAME="${PROJECT_NAME//\\/\\\\}"; PROJECT_NAME="${PROJECT_NAME//\"/\\\"}"
+
 
 # --- Build output JSON ---
 # SECURE: escape '<' to prevent XSS vulnerability when injected into an HTML script block
