@@ -218,6 +218,7 @@ TMP_FILE=$(mktemp "$(dirname "$OUTPUT_FILE")/.tmp.XXXXXX")
 PROJECT_NAME_ESCAPED=$(jq -n --arg pn "$PROJECT_NAME" '$pn' 2>/dev/null || echo "\"$PROJECT_NAME\"")
 VERSION_STR="$(json_val "$CONFIG_FILE" "omnistate_version" "1.5.0")"
 VERSION_ESCAPED=$(jq -n --arg v "$VERSION_STR" '$v' 2>/dev/null || echo "\"$VERSION_STR\"")
+COST_TOTAL_ESCAPED=$(jq -n --arg ct "$COST_TOTAL" '$ct' 2>/dev/null || echo "\"$COST_TOTAL\"")
 
 cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$TMP_FILE"
 {
@@ -230,7 +231,7 @@ cat << ENDJSON | sed 's/</\\u003c/g; s/>/\\u003e/g' > "$TMP_FILE"
     "snapshots": $SNAPSHOTS,
     "tokenSavings": "${TOKEN_SAVED_K}k",
     "tokenSavingsRaw": $TOKEN_SAVED,
-    "costTotal": "$COST_TOTAL",
+    "costTotal": $COST_TOTAL_ESCAPED,
     "costByModel": $COST_BY_MODEL,
     "lastUpdate": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
     "timeline": $TIMELINE,
