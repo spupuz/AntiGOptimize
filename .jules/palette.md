@@ -1,0 +1,3 @@
+## 2024-09-08 - Empty State CLI Command Scannability
+**Learning:** Empty states with inline CLI commands generated via verbose JavaScript DOM manipulation can lack distinct visual styling, making them hard to scan. Refactoring to use `innerHTML` with static strings allows for easy injection of inline styles (like `font-family: monospace;`) to significantly improve visual scannability and user comprehension without introducing XSS risks.
+**Action:** Always format inline CLI commands using `<code>` tags with distinct styling (e.g., monospace font, different background) in empty states. Use `innerHTML` for pure static strings to simplify the code and allow for easier styling injection, but stick to `document.createElement` when handling dynamic data to prevent XSS.
